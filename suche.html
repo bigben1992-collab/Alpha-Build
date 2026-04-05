@@ -7,28 +7,37 @@
     <title>Lager-Scanner</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+        body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        /* Banner Style */
+        .banner-container { text-align: center; margin-bottom: 20px; }
+        .logo { max-width: 100%; height: auto; max-height: 80px; object-fit: contain; }
+        
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; border: 1px solid #ddd; }
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        #result { border-top: 2px solid #eee; pt: 20px; display: none; }
-        .info-card { background: #e9ecef; padding: 15px; border-radius: 6px; margin-bottom: 10px; }
-        .platz-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd; }
-        .loading { color: #666; font-style: italic; }
+        input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
+        #result { border-top: 2px solid #eee; padding-top: 20px; display: none; }
+        .info-card { background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 5px solid #007bff; margin-bottom: 15px; }
+        .info-card strong { font-size: 1.1em; }
+        .platz-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .loading { color: #666; font-style: italic; text-align: center; margin: 10px 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Warensuche</h2>
-    
+    <div class="banner-container">
+        <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'; console.log('Logo nicht gefunden');">
+    </div>
+
     <div id="reader"></div>
     
     <div class="input-group">
-        <input type="text" id="artikelId" placeholder="Artikel-ID manuell eingeben...">
-        <button onclick="sucheArtikel()">Suchen</button>
+        <input type="text" id="artikelId" placeholder="Artikel-ID scannen oder tippen...">
+        <button onclick="sucheArtikel()">Suche</button>
     </div>
 
     <div id="status" class="loading"></div>
@@ -36,20 +45,20 @@
     <div id="result">
         <div class="info-card">
             <strong id="resName">--</strong><br>
-            <span id="resPreis" style="color: #28a745; font-weight: bold;">--</span>
+            <span id="resPreis" style="color: #28a745; font-weight: bold; font-size: 1.1em;">--</span>
         </div>
         
-        <h4>Lagerplätze:</h4>
+        <h4 style="margin-bottom: 10px;">Gefundene Lagerplätze:</h4>
         <div id="platzListe"></div>
     </div>
 </div>
 
 <script>
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; // Ersetze dies durch deine bereitgestellte URL
+    // BITTE HIER DEINE URL EINTRAGEN
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; 
 
-    // Scanner Initialisierung
     const html5QrCode = new Html5Qrcode("reader");
-    const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+    const config = { fps: 15, qrbox: { width: 250, height: 150 } };
 
     html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
         document.getElementById("artikelId").value = decodedText;
@@ -63,42 +72,4 @@
         const status = document.getElementById("status");
         const resDiv = document.getElementById("result");
         
-        status.innerText = "Suche läuft...";
-        resDiv.style.display = "none";
-
-        // Aufruf der doGet Funktion im Backend
-        fetch(`${scriptUrl}?aktion=warensuche&artikelId=${encodeURIComponent(id)}`)
-            .then(response => response.json())
-            .then(data => {
-                status.innerText = "";
-                if (data.name) {
-                    resDiv.style.display = "block";
-                    document.getElementById("resName").innerText = data.name;
-                    document.getElementById("resPreis").innerText = "Preis: " + (data.preis || "n.a.");
-                    
-                    const liste = document.getElementById("platzListe");
-                    liste.innerHTML = "";
-                    
-                    if (data.res && data.res.length > 0) {
-                        data.res.forEach(item => {
-                            const row = document.createElement("div");
-                            row.className = "platz-row";
-                            row.innerHTML = `<span>📍 ${item.platz}</span> <strong>${item.menge} Stk.</strong>`;
-                            liste.appendChild(row);
-                        });
-                    } else {
-                        liste.innerHTML = "<p>Kein Bestand auf Lager.</p>";
-                    }
-                } else {
-                    alert("Artikel nicht gefunden.");
-                }
-            })
-            .catch(err => {
-                status.innerText = "Fehler: " + err;
-                console.error(err);
-            });
-    }
-</script>
-
-</body>
-</html>
+        status.innerText = "🔍
