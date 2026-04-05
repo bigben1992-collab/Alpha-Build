@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lager Pro</title>
+  <style>
+    :root { --p: #0f172a; --a: #2563eb; --bg: #f1f5f9; }
+    body { font-family: sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; }
+    header { width: 100%; background: white; height: 70px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .logo { height: 40px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 400px; padding: 20px; margin-top: 20px; }
+    .card { background: white; border-radius: 20px; padding: 30px 10px; text-decoration: none; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+    .card:active { transform: scale(0.95); background: #f8fafc; }
+    .icon { font-size: 2rem; margin-bottom: 10px; }
+    .label { font-weight: 800; color: var(--p); font-size: 0.8rem; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <header><img src="logo.png" class="logo"></header>
+  <div style="margin-top:20px; text-align:center;"><h2>Hauptmenü</h2></div>
+  <div class="grid">
+    <a href="buchen.html" class="card"><div class="icon">📦</div><div class="label">Buchen</div></a>
+    <a href="platz.html" class="card"><div class="icon">📍</div><div class="label">Platz-Info</div></a>
+    <a href="suche.html" class="card"><div class="icon">🔎</div><div class="label">Suche</div></a>
+    <a href="setup.html" class="card"><div class="icon">⚙️</div><div class="label">Setup</div></a>
+  </div>
+</body>
+</html>
