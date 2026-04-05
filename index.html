@@ -1,94 +1,86 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Super Supreme System | Dashboard</title>
-  <style>
-    :root {
-      --p: #1e293b;
-      --a: #3b82f6;
-      --bg: #f8fafc;
-      --accent-price: #f59e0b;
-      --accent-search: #10b981;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Supreme System | Dashboard</title>
+    <style>
+        :root {
+            --primary: #00d2ff;
+            --secondary: #3a7bd5;
+            --bg-dark: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text: #f8fafc;
+        }
 
-    body {
-      font-family: -apple-system, system-ui, sans-serif;
-      background: var(--bg);
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      color: var(--p);
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
 
-    header {
-      width: 100%;
-      background: white;
-      padding: 20px 0;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      margin-bottom: 30px;
-    }
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
 
-    .logo {
-      font-weight: 800;
-      font-size: 1.5rem;
-      letter-spacing: -1px;
-    }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
 
-    .logo span { color: var(--a); }
+        h1 {
+            font-size: 3rem;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
 
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      width: 90%;
-      max-width: 400px;
-    }
+        .subtitle {
+            color: #94a3b8;
+            margin-top: 0.5rem;
+            font-weight: 300;
+        }
 
-    .menu-card {
-      background: white;
-      text-decoration: none;
-      color: var(--p);
-      padding: 25px 15px;
-      border-radius: 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
-      transition: transform 0.2s;
-      border: 1px solid #f1f5f9;
-    }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 90%;
+            max-width: 800px;
+        }
 
-    .menu-card:active { transform: scale(0.95); }
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
 
-    .icon { font-size: 2rem; margin-bottom: 10px; }
-    
-    .title { font-weight: 700; font-size: 0.9rem; }
-    .desc { font-size: 0.7rem; color: #64748b; margin-top: 5px; }
+        .card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.2);
+        }
 
-    /* Farben für die Icons/Karten */
-    .c-buchen { border-bottom: 4px solid var(--a); }
-  </style>
-</head>
-<body>
-
-  <header>
-    <div class="logo">Super Supreme <span>System</span></div>
-  </header>
-
-  <main class="grid">
-    <a href="#" class="menu-card c-buchen">
-      <div class="icon">📦</div>
-      <div class="title">Buchen</div>
-      <div class="desc">Bestände verwalten</div>
-    </a>
-    
-    </main>
-
-</body>
-</html>
+        .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
