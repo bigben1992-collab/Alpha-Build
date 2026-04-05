@@ -1,113 +1,78 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Artikelsuche | Lager Pro</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <style>
-    :root { --p: #0f172a; --a: #2563eb; --bg: #f1f5f9; }
-    * { box-sizing: border-box; }
-    body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; }
-    
-    header { background: white; height: 65px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .logo { height: 40px; }
-
-    .container { max-width: 450px; margin: 0 auto; padding: 15px; }
-    .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-    
-    #reader { width: 100%; border-radius: 15px; overflow: hidden; aspect-ratio: 1; background: #000; margin-bottom: 15px; border: 2px solid #e2e8f0; }
-    
-    input { width: 100%; padding: 14px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 16px; outline: none; background: #fcfcfd; }
-    input:focus { border-color: var(--a); background: white; }
-
-    /* Ergebnisanzeige */
-    .res-area { margin-top: 10px; }
-    .art-name { font-weight: 800; color: var(--p); font-size: 1.1rem; margin-bottom: 10px; display: block; }
-    
-    table { width: 100%; border-collapse: collapse; background: #f8fafc; border-radius: 12px; overflow: hidden; }
-    th { text-align: left; background: #e2e8f0; color: #475569; font-size: 11px; padding: 10px; text-transform: uppercase; }
-    td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 15px; color: var(--p); }
-    tr:last-child td { border-bottom: none; }
-    .empty { padding: 20px; text-align: center; color: #64748b; font-style: italic; }
-
-    .back { display: block; text-align: center; margin-top: 25px; text-decoration: none; color: var(--a); font-weight: bold; font-size: 0.9rem; }
-    
-    #ov { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 99; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suche | Lager Pro</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    :root { --p: #0f172a; --a: #2563eb; --bg: #f1f5f9; --accent: #f59e0b; }
+    body { font-family: sans-serif; background: var(--bg); margin: 0; }
+    .container { max-width: 450px; margin: 0 auto; padding: 15px; }
+    .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    #reader { width: 100%; border-radius: 15px; overflow: hidden; background: #000; margin-bottom: 15px; }
+    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+    #ov { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 99; color: white; align-items: center; justify-content: center; }
+    .price-tag { color: var(--accent); font-weight: bold; font-size: 1.1rem; margin: 5px 0 15px 0; }
+  </style>
 </head>
 <body>
+  <div id="ov">Berechne...</div>
+  <div class="container">
+    <div class="card">
+      <h3>🔎 Artikelsuche</h3>
+      <div id="reader"></div>
+      <input type="text" id="artInput" placeholder="Artikel scannen..." onchange="suche()">
+      <div id="result"></div>
+    </div>
+    <a href="index.html" style="display:block; text-align:center; margin-top:20px; text-decoration:none; color:#64748b;">← Hauptmenü</a>
+  </div>
 
-  <div id="ov"><b>Suche Bestände...</b></div>
+  <script>
+    const api = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; // HIER URL EINTRAGEN
 
-  <header>
-    <img src="logo.png" alt="Logo" class="logo">
-  </header>
+    async function suche() {
+      const id = document.getElementById('artInput').value.trim();
+      if(!id) return;
+      
+      const resDiv = document.getElementById('result');
+      document.getElementById('ov').style.display = 'flex';
+      
+      try {
+        const r = await fetch(`${api}?aktion=warensuche&artikelId=${encodeURIComponent(id)}`);
+        const d = await r.json();
+        
+        if(d.name) {
+          // Anzeige von Name und dem neuen Preis-Feld
+          let h = `<h4 style="margin-bottom:2px;">${d.name}</h4>`;
+          h += `<div class="price-tag">Einzelpreis: ${d.preis || "0.00 €"}</div>`;
+          
+          if(d.res && d.res.length > 0) {
+            h += `<table><tr><th>Platz</th><th>Menge</th></tr>`;
+            d.res.forEach(i => h += `<tr><td>📍 ${i.platz}</td><td>${i.menge}</td></tr>`);
+            h += `</table>`;
+          } else {
+            h += "<p style='color:#64748b;'>Kein Bestand an Lagerplätzen gefunden.</p>";
+          }
+          resDiv.innerHTML = h;
+        } else {
+          resDiv.innerHTML = "<p>Artikel unbekannt / nicht in Stammdaten.</p>";
+        }
+      } catch(e) {
+        resDiv.innerHTML = "<p>Fehler bei der Abfrage!</p>";
+      } finally {
+        document.getElementById('ov').style.display = 'none';
+      }
+    }
 
-  <div class="container">
-    <div class="card">
-      <h3 style="margin-top:0; color:var(--p);">🔎 Artikelsuche</h3>
-      
-      <div id="reader"></div>
-      
-      <label style="font-size:11px; font-weight:bold; color:#94a3b8; margin-left:5px;">ARTIKEL SCANNEN</label>
-      <input type="text" id="artInput" placeholder="Artikel-ID eingeben..." onchange="suche()">
-      
-      <div id="result" class="res-area">
-        </div>
-    </div>
-
-    <a href="index.html" class="back">← Zurück zum Hauptmenü</a>
-  </div>
-
-  <script>
-    // DEINE URL HIER EINTRAGEN
-    var api = "https://script.google.com/macros/s/AKfycbwGk57kBLG7y-p7roHKK65nfjoRrpWbQr5E7buoL6tcjmxVO0U_WY_QnMiz6coTNqDD/exec";
-    
-    var sc = new Html5Qrcode("reader");
-
-    async function suche() {
-      var id = document.getElementById('artInput').value;
-      if(!id) return;
-
-      document.getElementById('ov').style.display = 'flex';
-      var resDiv = document.getElementById('result');
-      
-      try {
-        var r = await fetch(api + "?aktion=warensuche&artikelId=" + encodeURIComponent(id));
-        var d = await r.json();
-        
-        if(d.res && d.res.length > 0) {
-          var html = `<span class="art-name">${d.name || "Unbenannter Artikel"}</span>`;
-          html += `<table><tr><th>Platz</th><th>Menge</th></tr>`;
-          
-          d.res.forEach(item => {
-            html += `<tr><td>📍 ${item.platz}</td><td><b>${item.menge}</b></td></tr>`;
-          });
-          
-          html += `</table>`;
-          resDiv.innerHTML = html;
-        } else {
-          resDiv.innerHTML = `<div class="empty">Kein Bestand für diesen Artikel gefunden.</div>`;
-        }
-      } catch(e) {
-        resDiv.innerHTML = `<div class="empty" style="color:red;">Verbindungsfehler zum Server.</div>`;
-      }
-      
-      document.getElementById('ov').style.display = 'none';
-    }
-
-    // Scanner starten
-    sc.start(
-      { facingMode: "environment" }, 
-      { fps: 20, qrbox: 250 },
-      (txt) => {
-        document.getElementById('artInput').value = txt;
-        suche();
-        if(window.navigator.vibrate) window.navigator.vibrate(50);
-      }
-    ).catch(err => console.error("Kamerafehler:", err));
-  </script>
-
+    let sc = new Html5Qrcode("reader");
+    sc.start({facingMode:"environment"}, {fps:10, qrbox:250}, (txt) => {
+      document.getElementById('artInput').value = txt;
+      suche();
+      if(window.navigator.vibrate) window.navigator.vibrate(50);
+    }).catch(()=>{});
+  </script>
 </body>
 </html>
