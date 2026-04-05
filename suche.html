@@ -1,149 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <base target="_top">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lager-Scanner Pro</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        :root {
-            --primary-color: #007bff;
-            --secondary-color: #6c757d;
-            --success-color: #28a745;
-            --bg-color: #f4f7f6;
-            --text-color: #333;
-        }
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lager-Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        /* Header-Bereich für das Logo */
+        .header-box { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            margin-bottom: 20px; 
+            border-bottom: 1px solid #eee; 
+            padding-bottom: 10px; 
+        }
+        .logo-img { height: 40px; width: auto; object-fit: contain; }
+        h2 { margin: 0; font-size: 1.4em; color: #444; }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background-color: var(--bg-color); color: var(--text-color); }
-        .container { max-width: 500px; margin: auto; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); overflow: hidden; }
-        
-        /* Neuer, dezenter Header-Bereich */
-        .header { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; border-bottom: 1px solid #eee; background-color: #fff; }
-        .header-title { font-size: 1.2em; font-weight: bold; margin: 0; }
-        
-        /* Dezent integriertes Logo */
-        .logo { max-height: 35px; max-width: 120px; object-fit: contain; }
-        
-        /* Scanner- und Hauptbereich padding */
-        .main-content { padding: 20px; }
-
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 15px; border: 1px solid #ddd; background: #000;}
-        
-        .input-group { display: flex; gap: 8px; margin-bottom: 20px; }
-        input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: #fff; box-sizing: border-box;}
-        button { padding: 12px 18px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.2s; }
-        button:active { background: #0056b3; }
-        
-        #result { border-top: 1px solid #eee; padding-top: 15px; display: none; }
-        
-        /* Ergebnis-Karte */
-        .info-card { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary-color); margin-bottom: 15px; }
-        .info-card strong { font-size: 1.15em; display: block; margin-bottom: 5px; }
-        .res-preis { color: var(--success-color); font-weight: bold; font-size: 1.2em; display: block; margin-top: 5px;}
-        
-        /* Platzierungs-Liste */
-        .platz-list { margin-top: 10px; }
-        .platz-list-title { font-size: 0.9em; text-transform: uppercase; color: var(--secondary-color); font-weight: bold; margin-bottom: 8px; }
-        .platz-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; background: white; border: 1px solid #eee; border-radius: 6px; margin-bottom: 6px; }
-        .platz-row span { display: flex; align-items: center; gap: 6px; }
-        .icon-pin { color: var(--secondary-color); }
-
-        .loading { color: var(--secondary-color); font-style: italic; text-align: center; margin: 10px 0; font-size: 0.9em; }
-    </style>
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background: #000; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
+        #result { border-top: 2px solid #eee; padding-top: 20px; display: none; }
+        .info-card { background: #e9ecef; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 5px solid #007bff; }
+        .platz-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #ddd; }
+        .loading { color: #666; font-style: italic; text-align: center; }
+    </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header">
-        <h1 class="header-title">Warensuche</h1>
-        <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none';">
-    </div>
+    <div class="header-box">
+        <img src="logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none';">
+        <h2>Warensuche</h2>
+    </div>
+    
+    <div id="reader"></div>
+    
+    <div class="input-group">
+        <input type="text" id="artikelId" placeholder="Artikel-ID manuell eingeben...">
+        <button onclick="sucheArtikel()">Suchen</button>
+    </div>
 
-    <div class="main-content">
-        <div id="reader"></div>
-        
-        <div class="input-group">
-            <input type="text" id="artikelId" placeholder="ID scannen oder tippen...">
-            <button onclick="sucheArtikel()">Suche</button>
-        </div>
+    <div id="status" class="loading"></div>
 
-        <div id="status" class="loading"></div>
-
-        <div id="result">
-            <div class="info-card">
-                <strong id="resName">--</strong>
-                <span id="resPreis" class="res-preis">--</span>
-            </div>
-            
-            <div class="platz-list">
-                <div class="platz-list-title">Bestand</div>
-                <div id="platzListe"></div>
-            </div>
-        </div>
-    </div>
+    <div id="result">
+        <div class="info-card">
+            <strong id="resName" style="font-size: 1.1em;">--</strong><br>
+            <span id="resPreis" style="color: #28a745; font-weight: bold; font-size: 1.2em;">--</span>
+        </div>
+        
+        <h4 style="margin-bottom: 10px;">Lagerplätze:</h4>
+        <div id="platzListe"></div>
+    </div>
 </div>
 
 <script>
-    // BITTE HIER DEINE URL EINTRAGEN
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; 
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; // Ersetze dies durch deine bereitgestellte URL
 
-    // Konfiguration für schnelleren Scan
-    const html5QrCode = new Html5Qrcode("reader");
-    const config = { fps: 15, qrbox: { width: 250, height: 150 }, rememberLastUsedCamera: true };
+    // Scanner Initialisierung
+    const html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: { width: 250, height: 150 } };
 
-    html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-        document.getElementById("artikelId").value = decodedText;
-        // Kurzes visuelles Feedback vorm Laden
-        document.getElementById("reader").style.borderColor = var(--success-color);
-        setTimeout(() => document.getElementById("reader").style.borderColor = "#ddd", 300);
-        sucheArtikel();
-    });
+    html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+        document.getElementById("artikelId").value = decodedText;
+        sucheArtikel();
+    });
 
-    function sucheArtikel() {
-        const id = document.getElementById("artikelId").value.trim();
-        if (!id) return;
+    function sucheArtikel() {
+        const id = document.getElementById("artikelId").value.trim();
+        if (!id) return;
 
-        const status = document.getElementById("status");
-        const resDiv = document.getElementById("result");
-        
-        status.innerText = "🔍 Suche läuft...";
-        resDiv.style.display = "none";
+        const status = document.getElementById("status");
+        const resDiv = document.getElementById("result");
+        
+        status.innerText = "Suche läuft...";
+        resDiv.style.display = "none";
 
-        // Unveränderte Logik zum Backend-Aufruf
-        fetch(`${scriptUrl}?aktion=warensuche&artikelId=${encodeURIComponent(id)}`)
-            .then(response => response.json())
-            .then(data => {
-                status.innerText = "";
-                if (data.name) {
-                    resDiv.style.display = "block";
-                    document.getElementById("resName").innerText = data.name;
-                    // Nimmt den formatierten Preis direkt vom Backend an
-                    document.getElementById("resPreis").innerText = (data.preis || "0,00 €");
-                    
-                    const liste = document.getElementById("platzListe");
-                    liste.innerHTML = "";
-                    
-                    if (data.res && data.res.length > 0) {
-                        data.res.forEach(item => {
-                            const row = document.createElement("div");
-                            row.className = "platz-row";
-                            row.innerHTML = `<span><span class="icon-pin">📍</span> ${item.platz}</span> <strong>${item.menge} Stk.</strong>`;
-                            liste.appendChild(row);
-                        });
-                    } else {
-                        liste.innerHTML = "<p style='color: #dc3545; text-align:center; padding: 10px; background: #fff1f1; border-radius:6px;'>Aktuell kein Bestand.</p>";
-                    }
-                } else {
-                    alert("Artikelnummer nicht gefunden.");
-                    status.innerText = "";
-                }
-            })
-            .catch(err => {
-                status.innerText = "Fehler bei der Verbindung.";
-                console.error(err);
-            });
-    }
+        // Aufruf der doGet Funktion im Backend (Parameter unverändert für volle Kompatibilität)
+        fetch(`${scriptUrl}?aktion=warensuche&artikelId=${encodeURIComponent(id)}`)
+            .then(response => response.json())
+            .then(data => {
+                status.innerText = "";
+                if (data.name) {
+                    resDiv.style.display = "block";
+                    document.getElementById("resName").innerText = data.name;
+                    document.getElementById("resPreis").innerText = data.preis || "n.a.";
+                    
+                    const liste = document.getElementById("platzListe");
+                    liste.innerHTML = "";
+                    
+                    if (data.res && data.res.length > 0) {
+                        data.res.forEach(item => {
+                            const row = document.createElement("div");
+                            row.className = "platz-row";
+                            row.innerHTML = `<span>📍 ${item.platz}</span> <strong>${item.menge} Stk.</strong>`;
+                            liste.appendChild(row);
+                        });
+                    } else {
+                        liste.innerHTML = "<p>Kein Bestand auf Lager.</p>";
+                    }
+                } else {
+                    alert("Artikel nicht gefunden.");
+                    status.innerText = "";
+                }
+            })
+            .catch(err => {
+                status.innerText = "Fehler: " + err;
+                console.error(err);
+            });
+    }
 </script>
 
 </body>
