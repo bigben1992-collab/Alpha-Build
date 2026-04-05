@@ -1,78 +1,210 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Suche | Lager Pro</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <style>
-    :root { --p: #0f172a; --a: #2563eb; --bg: #f1f5f9; --accent: #f59e0b; }
-    body { font-family: sans-serif; background: var(--bg); margin: 0; }
-    .container { max-width: 450px; margin: 0 auto; padding: 15px; }
-    .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    #reader { width: 100%; border-radius: 15px; overflow: hidden; background: #000; margin-bottom: 15px; }
-    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
-    #ov { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 99; color: white; align-items: center; justify-content: center; }
-    .price-tag { color: var(--accent); font-weight: bold; font-size: 1.1rem; margin: 5px 0 15px 0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lager-Scanner | Buchung</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 { text-align: center; margin-top: 0; color: var(--primary); }
+
+        /* Scanner-Fenster */
+        #reader {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+            margin-bottom: 20px;
+        }
+
+        /* Formular-Styling */
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #64748b;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Buttons */
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-in { background-color: var(--success); }
+        .btn-out { background-color: var(--danger); }
+        button:active { opacity: 0.8; }
+
+        /* Overlay / Loader */
+        #ov {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-weight: bold;
+        }
+
+        .hint {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-  <div id="ov">Berechne...</div>
-  <div class="container">
-    <div class="card">
-      <h3>🔎 Artikelsuche</h3>
-      <div id="reader"></div>
-      <input type="text" id="artInput" placeholder="Artikel scannen..." onchange="suche()">
-      <div id="result"></div>
+
+<div id="ov">Wird verarbeitet...</div>
+
+<div class="container">
+    <h2>Lager Scanner</h2>
+    
+    <div id="reader"></div>
+    
+    <div class="input-group">
+        <label>Lagerplatz (zuerst scannen)</label>
+        <input type="text" id="p" placeholder="Platz-ID eingeben oder scannen">
     </div>
-    <a href="index.html" style="display:block; text-align:center; margin-top:20px; text-decoration:none; color:#64748b;">← Hauptmenü</a>
-  </div>
 
-  <script>
-    const api = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; // HIER URL EINTRAGEN
+    <div class="input-group">
+        <label>Artikel (danach scannen)</label>
+        <input type="text" id="a" placeholder="Artikel-ID eingeben oder scannen">
+    </div>
 
-    async function suche() {
-      const id = document.getElementById('artInput').value.trim();
-      if(!id) return;
+    <div class="input-group">
+        <label>Menge</label>
+        <input type="number" id="m" value="1" min="1">
+    </div>
+
+    <div class="button-grid">
+        <button class="btn-in" onclick="run('Einlagern')">📥 Einlagern</button>
+        <button class="btn-out" onclick="run('Auslagern')">📤 Auslagern</button>
+    </div>
+
+    <p class="hint">Logik: Erst Platz scannen, dann Artikel scannen.</p>
+</div>
+
+<script>
+    const api = "DEINE_WEB_APP_URL"; // DEINE URL HIER
+
+    async function run(typ) {
+      const art = document.getElementById('a').value.trim();
+      const plz = document.getElementById('p').value.trim();
+      const menge = document.getElementById('m').value;
       
-      const resDiv = document.getElementById('result');
+      if(!art || !plz || !menge) return alert("Fehlende Scans oder Menge!");
+      
       document.getElementById('ov').style.display = 'flex';
       
       try {
-        const r = await fetch(`${api}?aktion=warensuche&artikelId=${encodeURIComponent(id)}`);
-        const d = await r.json();
+        let checkRes = await fetch(`${api}?aktion=warensuche&artikelId=${encodeURIComponent(art)}`);
+        let checkData = await checkRes.json();
         
-        if(d.name) {
-          // Anzeige von Name und dem neuen Preis-Feld
-          let h = `<h4 style="margin-bottom:2px;">${d.name}</h4>`;
-          h += `<div class="price-tag">Einzelpreis: ${d.preis || "0.00 €"}</div>`;
-          
-          if(d.res && d.res.length > 0) {
-            h += `<table><tr><th>Platz</th><th>Menge</th></tr>`;
-            d.res.forEach(i => h += `<tr><td>📍 ${i.platz}</td><td>${i.menge}</td></tr>`);
-            h += `</table>`;
-          } else {
-            h += "<p style='color:#64748b;'>Kein Bestand an Lagerplätzen gefunden.</p>";
-          }
-          resDiv.innerHTML = h;
-        } else {
-          resDiv.innerHTML = "<p>Artikel unbekannt / nicht in Stammdaten.</p>";
+        let neuerName = "";
+        if (!checkData.name) {
+          document.getElementById('ov').style.display = 'none';
+          neuerName = prompt("Neuer Artikel erkannt! Bitte Bezeichnung eingeben:");
+          if (!neuerName) return;
+          document.getElementById('ov').style.display = 'flex';
         }
-      } catch(e) {
-        resDiv.innerHTML = "<p>Fehler bei der Abfrage!</p>";
+
+        const response = await fetch(api, {
+          method: "POST",
+          body: JSON.stringify({
+            daten: { typ: typ, artikel: art, menge: menge, platz: plz, neuerName: neuerName }
+          })
+        });
+        
+        const result = await response.json();
+        
+        if(result.status === "success") {
+          alert(`Erfolgreich: ${typ} von ${result.name || art}`);
+          document.getElementById('a').value = ""; // Nur Artikel leeren
+        } else {
+          alert("Fehler: " + result.msg);
+        }
+      } catch (e) {
+        alert("Netzwerkfehler!");
       } finally {
         document.getElementById('ov').style.display = 'none';
       }
     }
 
     let sc = new Html5Qrcode("reader");
-    sc.start({facingMode:"environment"}, {fps:10, qrbox:250}, (txt) => {
-      document.getElementById('artInput').value = txt;
-      suche();
+    sc.start({facingMode:"environment"}, {fps:15, qrbox:250}, (txt) => {
+      if(!document.getElementById('p').value) {
+        document.getElementById('p').value = txt;
+      } else {
+        document.getElementById('a').value = txt;
+      }
       if(window.navigator.vibrate) window.navigator.vibrate(50);
-    }).catch(()=>{});
-  </script>
+    }).catch(err => console.error(err));
+</script>
+
 </body>
 </html>
