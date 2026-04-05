@@ -1,209 +1,103 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
+    <base target="_top">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lager-Scanner | Buchung</title>
+    <title>Lager-Scanner</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root {
-            --primary: #2563eb;
-            --success: #16a34a;
-            --danger: #dc2626;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 500px;
-            background: var(--card);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        h2 { text-align: center; margin-top: 0; color: var(--primary); }
-
-        /* Scanner-Fenster */
-        #reader {
-            width: 100%;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #000;
-            margin-bottom: 20px;
-        }
-
-        /* Formular-Styling */
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #64748b;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-            box-sizing: border-box;
-            transition: border-color 0.2s;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        /* Buttons */
-        .button-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        button {
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        .btn-in { background-color: var(--success); }
-        .btn-out { background-color: var(--danger); }
-        button:active { opacity: 0.8; }
-
-        /* Overlay / Loader */
-        #ov {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            font-weight: bold;
-        }
-
-        .hint {
-            font-size: 0.8rem;
-            color: #94a3b8;
-            text-align: center;
-            margin-top: 10px;
-        }
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        #result { border-top: 2px solid #eee; pt: 20px; display: none; }
+        .info-card { background: #e9ecef; padding: 15px; border-radius: 6px; margin-bottom: 10px; }
+        .platz-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd; }
+        .loading { color: #666; font-style: italic; }
     </style>
 </head>
 <body>
 
-<div id="ov">Wird verarbeitet...</div>
-
 <div class="container">
-    <h2>Lager Scanner</h2>
+    <h2>Warensuche</h2>
     
     <div id="reader"></div>
     
     <div class="input-group">
-        <label>Lagerplatz (zuerst scannen)</label>
-        <input type="text" id="p" placeholder="Platz-ID eingeben oder scannen">
+        <input type="text" id="artikelId" placeholder="Artikel-ID manuell eingeben...">
+        <button onclick="sucheArtikel()">Suchen</button>
     </div>
 
-    <div class="input-group">
-        <label>Artikel (danach scannen)</label>
-        <input type="text" id="a" placeholder="Artikel-ID eingeben oder scannen">
-    </div>
+    <div id="status" class="loading"></div>
 
-    <div class="input-group">
-        <label>Menge</label>
-        <input type="number" id="m" value="1" min="1">
+    <div id="result">
+        <div class="info-card">
+            <strong id="resName">--</strong><br>
+            <span id="resPreis" style="color: #28a745; font-weight: bold;">--</span>
+        </div>
+        
+        <h4>Lagerplätze:</h4>
+        <div id="platzListe"></div>
     </div>
-
-    <div class="button-grid">
-        <button class="btn-in" onclick="run('Einlagern')">📥 Einlagern</button>
-        <button class="btn-out" onclick="run('Auslagern')">📤 Auslagern</button>
-    </div>
-
-    <p class="hint">Logik: Erst Platz scannen, dann Artikel scannen.</p>
 </div>
 
 <script>
-    const api = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; // DEINE URL HIER
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; // Ersetze dies durch deine bereitgestellte URL
 
-    async function run(typ) {
-      const art = document.getElementById('a').value.trim();
-      const plz = document.getElementById('p').value.trim();
-      const menge = document.getElementById('m').value;
-      
-      if(!art || !plz || !menge) return alert("Fehlende Scans oder Menge!");
-      
-      document.getElementById('ov').style.display = 'flex';
-      
-      try {
-        let checkRes = await fetch(`${api}?aktion=warensuche&artikelId=${encodeURIComponent(art)}`);
-        let checkData = await checkRes.json();
-        
-        let neuerName = "";
-        if (!checkData.name) {
-          document.getElementById('ov').style.display = 'none';
-          neuerName = prompt("Neuer Artikel erkannt! Bitte Bezeichnung eingeben:");
-          if (!neuerName) return;
-          document.getElementById('ov').style.display = 'flex';
-        }
+    // Scanner Initialisierung
+    const html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: { width: 250, height: 150 } };
 
-        const response = await fetch(api, {
-          method: "POST",
-          body: JSON.stringify({
-            daten: { typ: typ, artikel: art, menge: menge, platz: plz, neuerName: neuerName }
-          })
-        });
+    html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+        document.getElementById("artikelId").value = decodedText;
+        sucheArtikel();
+    });
+
+    function sucheArtikel() {
+        const id = document.getElementById("artikelId").value.trim();
+        if (!id) return;
+
+        const status = document.getElementById("status");
+        const resDiv = document.getElementById("result");
         
-        const result = await response.json();
-        
-        if(result.status === "success") {
-          alert(`Erfolgreich: ${typ} von ${result.name || art}`);
-          document.getElementById('a').value = ""; // Nur Artikel leeren
-        } else {
-          alert("Fehler: " + result.msg);
-        }
-      } catch (e) {
-        alert("Netzwerkfehler!");
-      } finally {
-        document.getElementById('ov').style.display = 'none';
-      }
+        status.innerText = "Suche läuft...";
+        resDiv.style.display = "none";
+
+        // Aufruf der doGet Funktion im Backend
+        fetch(`${scriptUrl}?aktion=warensuche&artikelId=${encodeURIComponent(id)}`)
+            .then(response => response.json())
+            .then(data => {
+                status.innerText = "";
+                if (data.name) {
+                    resDiv.style.display = "block";
+                    document.getElementById("resName").innerText = data.name;
+                    document.getElementById("resPreis").innerText = "Preis: " + (data.preis || "n.a.");
+                    
+                    const liste = document.getElementById("platzListe");
+                    liste.innerHTML = "";
+                    
+                    if (data.res && data.res.length > 0) {
+                        data.res.forEach(item => {
+                            const row = document.createElement("div");
+                            row.className = "platz-row";
+                            row.innerHTML = `<span>📍 ${item.platz}</span> <strong>${item.menge} Stk.</strong>`;
+                            liste.appendChild(row);
+                        });
+                    } else {
+                        liste.innerHTML = "<p>Kein Bestand auf Lager.</p>";
+                    }
+                } else {
+                    alert("Artikel nicht gefunden.");
+                }
+            })
+            .catch(err => {
+                status.innerText = "Fehler: " + err;
+                console.error(err);
+            });
     }
-
-    let sc = new Html5Qrcode("reader");
-    sc.start({facingMode:"environment"}, {fps:15, qrbox:250}, (txt) => {
-      if(!document.getElementById('p').value) {
-        document.getElementById('p').value = txt;
-      } else {
-        document.getElementById('a').value = txt;
-      }
-      if(window.navigator.vibrate) window.navigator.vibrate(50);
-    }).catch(err => console.error(err));
 </script>
 
 </body>
