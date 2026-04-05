@@ -1,182 +1,169 @@
+<!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Lager Pro | Dashboard</title>
-  <style>
-    :root {
-      --p: #1e293b;
-      --a: #3b82f6;
-      --bg: #f8fafc;
-      --accent-price: #f59e0b;
-      --accent-search: #10b981;
-      --bg: #f0f2f5;
-      --card-bg: #ffffff;
-      --primary: #2563eb;
-      --text: #1e293b;
-      --text-light: #64748b;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Supreme System | HQ</title>
+    <style>
+        :root {
+            --primary: #00d2ff;
+            --secondary: #9d50bb; /* Ein edles Violett für mehr Tiefe */
+            --bg-dark: #070b14;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent-glow: rgba(0, 210, 255, 0.3);
+        }
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        }
 
-    body {
-      font-family: -apple-system, system-ui, sans-serif;
-      background: var(--bg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      align-items: center;
-      color: var(--p);
-    }
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(58, 123, 213, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(157, 80, 187, 0.15) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
 
-    header {
-      width: 100%;
-      background: white;
-      padding: 20px 0;
-      padding: 25px 0;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      margin-bottom: 30px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      margin-bottom: 20px;
-    }
+        header {
+            text-align: center;
+            margin-bottom: 4rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
 
-    .logo {
-      font-weight: 800;
-      font-size: 1.5rem;
-      letter-spacing: -1px;
-      font-weight: 900;
-      font-size: 1.6rem;
-      text-transform: uppercase;
-      letter-spacing: -0.5px;
-    }
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            font-weight: 900;
+            letter-spacing: -2px;
+            background: linear-gradient(135deg, #fff 30%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            line-height: 1;
+        }
 
-    .logo span { color: var(--a); }
-    .logo span { color: var(--primary); }
+        .subtitle {
+            color: var(--text-dim);
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
 
-    .grid {
-    .container {
-      width: 100%;
-      max-width: 480px;
-      padding: 15px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      width: 90%;
-      max-width: 400px;
-    }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            width: 95%;
+            max-width: 1100px;
+            perspective: 1000px;
+        }
 
-    .menu-card {
-      background: white;
-      background: var(--card-bg);
-      border-radius: 20px;
-      padding: 25px 10px;
-      text-decoration: none;
-      color: var(--p);
-      padding: 25px 15px;
-      border-radius: 24px;
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
-      transition: transform 0.2s;
-      border: 1px solid #f1f5f9;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
-      border: 1px solid rgba(0,0,0,0.05);
-    }
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            text-decoration: none;
+            color: var(--text-main);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
 
-    /* Klick-Effekt */
-    .menu-card:active {
-      transform: scale(0.95);
-      background-color: #f8fafc;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
+        /* Hover-Effekt */
+        .card:hover {
+            transform: translateY(-10px) scale(1.02);
+            background: rgba(255, 255, 255, 0.07);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
+        }
 
-    .icon-box {
-      font-size: 2.5rem;
-      margin-bottom: 12px;
-      display: block;
-    }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.05), transparent);
+            transform: translateX(-100%);
+            transition: 0.6s;
+        }
 
-    .label {
-      font-weight: 700;
-      font-size: 1rem;
-      margin-bottom: 4px;
-    }
+        .card:hover::before {
+            transform: translateX(100%);
+        }
 
-    .sub-label {
-      font-size: 0.75rem;
-      color: var(--text-light);
-      font-weight: 400;
-    }
+        .icon-box {
+            width: 70px;
+            height: 70px;
+            background: rgba(0, 210, 255, 0.1);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            margin-bottom: 1.5rem;
+            transition: 0.3s;
+        }
 
-    /* Akzentfarben für die Karten */
-    .buchen { border-top: 5px solid #3b82f6; }
-    .suche { border-top: 5px solid #10b981; }
-    .platz { border-top: 5px solid #8b5cf6; }
-    .preise { border-top: 5px solid #f59e0b; }
+        .card:hover .icon-box {
+            background: var(--primary);
+            color: var(--bg-dark);
+            transform: rotate(-5deg);
+        }
 
-    footer {
-      margin-top: auto;
-      padding: 30px;
-      color: var(--text-light);
-      font-size: 0.8rem;
-    }
-  </style>
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .card p {
+            font-size: 0.95rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+            body { padding: 2rem 0; }
+        }
+    </style>
 </head>
 <body>
 
-  <header>
-    <div class="logo">Lager<span>Pro</span></div>
-  </header>
+    <header>
+        <h1>SUPER SUPREME SYSTEM</h1>
+        <div class="subtitle">Logistics Intelligence Unit</div>
+    </header>
 
-  <main class="container">
-    <a href="buchen.html" class="menu-card buchen">
-      <span class="icon-box">📦</span>
-      <span class="label">Buchen</span>
-      <span class="sub-label">Ein- & Entnahme</span>
-    </a>
-
-    <a href="suche.html" class="menu-card suche">
-      <span class="icon-box">🔍</span>
-      <span class="label">Suche</span>
-      <span class="sub-label">Bestand & Preis</span>
-    </a>
-
-    <a href="platz.html" class="menu-card platz">
-      <span class="icon-box">📍</span>
-      <span class="label">Plätze</span>
-      <span class="sub-label">Inhalt prüfen</span>
-    </a>
-
-    <a href="preis_update.html" class="menu-card preise">
-      <span class="icon-box">💰</span>
-      <span class="label">Preise</span>
-      <span class="sub-label">Stammdaten</span>
-    </a>
-  </main>
-
-    .menu-card:active { transform: scale(0.95); }
-  <footer>
-    Lager Pro Terminal &bull; 2026
-  </footer>
-
-    .icon { font-size: 2rem; margin-bottom: 10px; }
-    
-    .title { font-weight: 700; font-size: 0.9rem; }
-    .desc { font-size: 0.7rem; color: #64748b; margin-top: 5px; }
-</body>
-</html>
-
-    /* Farben für die Icons/Karten */
-    .c-buchen { border
+    <main class="grid-container">
+        
+        <a href="buchen.html" class="card">
+            <div class="icon-box">📥</div>
+            <h2>Buchen</h2>
+            <p>Bestandse
