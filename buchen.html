@@ -11,15 +11,17 @@
     header { background: white; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .container { max-width: 450px; margin: 0 auto; padding: 15px; }
     .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-    #reader { width: 100%; border-radius: 15px; overflow: hidden; aspect-ratio: 1; background: #000; margin-bottom: 15px; }
+    #reader { width: 100%; border-radius: 15px; overflow: hidden; aspect-ratio: 1; background: #000; margin-bottom: 10px; }
     
-    /* Der Kontrastfilter für das Video-Element */
-    #reader video {
-      filter: contrast(1.4) brightness(1.1) grayscale(1);
-      object-fit: cover;
-    }
+    /* Kontrastfilter */
+    #reader video { filter: contrast(1.5) brightness(1.1) grayscale(0.5); object-fit: cover; }
 
-    input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; }
+    /* Fokus/Zoom Regler Styling */
+    .controls { margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 10px; }
+    .controls label { font-size: 12px; color: #64748b; font-weight: bold; display: block; margin-bottom: 5px; }
+    input[type=range] { width: 100%; cursor: pointer; }
+
+    input[type=text], input[type=number] { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
     .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .btn { padding: 16px; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; }
     .back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: var(--a); font-weight: bold; }
@@ -33,6 +35,12 @@
     <div class="card">
       <h3>📦 Buchen</h3>
       <div id="reader"></div>
+
+      <div class="controls" id="camera-controls" style="display:none;">
+        <label>Zoom / Fokus Anpassung</label>
+        <input type="range" id="zoom-range" min="1" max="5" step="0.1" value="1">
+      </div>
+
       <input type="text" id="p" placeholder="Platz scannen">
       <input type="text" id="a" placeholder="Artikel scannen">
       <input type="number" id="m" value="1">
@@ -43,9 +51,11 @@
     </div>
     <a href="index.html" class="back">← Hauptmenü</a>
   </div>
+
   <script>
     var api = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec";
     var sc = new Html5Qrcode("reader");
+    var track = null;
 
     async function run(t) {
       var art = document.getElementById('a').value, plz = document.getElementById('p').value;
@@ -67,31 +77,35 @@
       document.getElementById('ov').style.display='none';
     }
 
-    // Scanner Start mit Optimierung
-    sc.start(
-      { facingMode: "environment" }, 
-      { 
-        fps: 20, 
-        qrbox: { width: 250, height: 250 },
-        // Höhere Video-Auflösung erzwingen für bessere Details
-        aspectRatio: 1.0
-      }, 
-      (txt) => {
-        if(!document.getElementById('p').value) document.getElementById('p').value = txt;
-        else document.getElementById('a').value = txt;
-        if(window.navigator.vibrate) window.navigator.vibrate(50);
+    // Scanner Start
+    sc.start({facingMode:"environment"}, {fps:20, qrbox:250}, (txt) => {
+      if(!document.getElementById('p').value) document.getElementById('p').value = txt;
+      else document.getElementById('a').value = txt;
+      if(window.navigator.vibrate) window.navigator.vibrate(50);
+    }).then(() => {
+      // Zugriff auf den Video-Track für Zoom/Fokus
+      const videoElement = document.querySelector('#reader video');
+      track = sc.getRunningTrack();
+      const capabilities = track.getCapabilities();
+
+      // Prüfen, ob Zoom unterstützt wird (oft besser als Fokus-Kontrolle im Browser)
+      if (capabilities.zoom) {
+        document.getElementById('camera-controls').style.display = 'block';
+        const zoomInput = document.getElementById('zoom-range');
+        zoomInput.min = capabilities.zoom.min;
+        zoomInput.max = capabilities.zoom.max;
+        zoomInput.step = capabilities.zoom.step;
+        
+        zoomInput.addEventListener('input', () => {
+          track.applyConstraints({ advanced: [{ zoom: zoomInput.value }] });
+        });
       }
-    ).then(() => {
-      // Sobald die Kamera läuft, wenden wir die Filter-Logik an
-      const video = document.querySelector('#reader video');
-      if (video) {
-        // CSS Filter: Erhöht Kontrast und wandelt in Graustufen um (besser für Barcodes)
-        video.style.filter = "contrast(1.5) brightness(1.0) grayscale(1)";
+      
+      // Falls manueller Fokus unterstützt wird (selten in Standard-Browsern)
+      if (capabilities.focusDistance) {
+        console.log("Manueller Fokus unterstützt");
       }
-    }).catch(err => {
-      console.error("Kamera-Fehler:", err);
-    });
+    }).catch(()=>{});
   </script>
 </body>
 </html>
-
