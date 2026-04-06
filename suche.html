@@ -1,122 +1,164 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-    <base target="_top">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lager-Scanner</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
-        /* Logo Integration: 2% Bildschirmbreite */
-        .logo-container {
-            text-align: center;
-            margin-bottom: 5px;
-        }
-        .logo-img {
-            width: 2vw; /* 2% der Bildschirmbreite */
-            min-width: 20px; /* Sicherstellung der Sichtbarkeit auf kleinen Displays */
-            height: auto;
-            display: block;
-            margin: 0 auto;
-        }
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lager-Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        /* Übernahme der Design-Sprache aus der ersten HTML */
+        :root { --p: #0f172a; --a: #2563eb; --s: #22c55e; --d: #ef4444; --bg: #f1f5f9; }
+        
+        body { font-family: sans-serif; background: var(--bg); margin: 0; color: #333; }
+        
+        /* Header-Stil exakt wie in der ersten Datei */
+        header { 
+            background: white; 
+            height: 60px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+            margin-bottom: 15px;
+        }
 
-        h2 { text-align: center; margin-top: 5px; font-size: 1.2em; }
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
-        button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        
-        #result { border-top: 2px solid #eee; padding-top: 20px; display: none; }
-        .info-card { background: #e9ecef; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 5px solid #007bff; }
-        .platz-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd; }
-        .loading { color: #666; font-style: italic; text-align: center; }
-    </style>
+        .container { max-width: 450px; margin: 0 auto; padding: 15px; }
+        
+        /* Card-Stil für Konsistenz */
+        .card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+        }
+
+        h2 { text-align: center; margin-top: 0; font-size: 1.2em; color: var(--p); }
+        
+        #reader { 
+            width: 100%; 
+            border-radius: 15px; 
+            overflow: hidden; 
+            aspect-ratio: 1; 
+            background: #000; 
+            margin-bottom: 15px; 
+        }
+
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        
+        input { 
+            flex-grow: 1; 
+            padding: 12px; 
+            border: 1.5px solid #e2e8f0; 
+            border-radius: 10px; 
+            font-size: 16px; 
+        }
+
+        button { 
+            padding: 10px 15px; 
+            background: var(--a); 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+        
+        #result { border-top: 2px solid #f1f5f9; padding-top: 15px; display: none; }
+        .info-card { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 5px solid var(--a); }
+        .platz-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .loading { color: #64748b; font-style: italic; text-align: center; margin-bottom: 10px; }
+        
+        .back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: var(--a); font-weight: bold; }
+    </style>
 </head>
 <body>
 
+<header>
+    <img src="logo.png" style="height:35px;" alt="Logo" onerror="this.style.display='none';">
+</header>
+
 <div class="container">
-    <div class="logo-container">
-        <img src="logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none';">
-    </div>
-    
-    <h2>Warensuche</h2>
-    
-    <div id="reader"></div>
-    
-    <div class="input-group">
-        <input type="text" id="artikelId" placeholder="Artikel-ID manuell eingeben...">
-        <button onclick="sucheArtikel()">Suchen</button>
-    </div>
+    <div class="card">
+        <h2>🔍 Warensuche</h2>
+        
+        <div id="reader"></div>
+        
+        <div class="input-group">
+            <input type="text" id="artikelId" placeholder="Artikel scannen oder eingeben...">
+            <button onclick="sucheArtikel()">Suchen</button>
+        </div>
 
-    <div id="status" class="loading"></div>
+        <div id="status" class="loading"></div>
 
-    <div id="result">
-        <div class="info-card">
-            <strong id="resName">--</strong><br>
-            <span id="resPreis" style="color: #28a745; font-weight: bold;">--</span>
-        </div>
-        
-        <h4>Lagerplätze:</h4>
-        <div id="platzListe"></div>
-    </div>
+        <div id="result">
+            <div class="info-card">
+                <strong id="resName" style="font-size: 1.1em;">--</strong><br>
+                <span id="resPreis" style="color: var(--s); font-weight: bold;">--</span>
+            </div>
+            
+            <h4 style="margin: 15px 0 10px 0; color: var(--p);">Lagerplätze:</h4>
+            <div id="platzListe"></div>
+        </div>
+    </div>
+    
+    <a href="index.html" class="back">← Hauptmenü</a>
 </div>
 
 <script>
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; 
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; 
 
-    const html5QrCode = new Html5Qrcode("reader");
-    const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+    const html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 20, qrbox: 250 }; // fps auf 20 erhöht für flüssigeres Scannen wie in Datei 1
 
-    html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-        document.getElementById("artikelId").value = decodedText;
-        sucheArtikel();
-    });
+    html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+        document.getElementById("artikelId").value = decodedText;
+        if(window.navigator.vibrate) window.navigator.vibrate(50); // Feedback wie in Datei 1
+        sucheArtikel();
+    }).catch(()=>{});
 
-    function sucheArtikel() {
-        const id = document.getElementById("artikelId").value.trim();
-        if (!id) return;
+    function sucheArtikel() {
+        const id = document.getElementById("artikelId").value.trim();
+        if (!id) return;
 
-        const status = document.getElementById("status");
-        const resDiv = document.getElementById("result");
-        
-        status.innerText = "Suche läuft...";
-        resDiv.style.display = "none";
+        const status = document.getElementById("status");
+        const resDiv = document.getElementById("result");
+        
+        status.innerText = "Suche läuft...";
+        resDiv.style.display = "none";
 
-        fetch(`${scriptUrl}?aktion=warensuche&artikelId=${encodeURIComponent(id)}`)
-            .then(response => response.json())
-            .then(data => {
-                status.innerText = "";
-                if (data.name) {
-                    resDiv.style.display = "block";
-                    document.getElementById("resName").innerText = data.name;
-                    document.getElementById("resPreis").innerText = "Preis: " + (data.preis || "n.a.");
-                    
-                    const liste = document.getElementById("platzListe");
-                    liste.innerHTML = "";
-                    
-                    if (data.res && data.res.length > 0) {
-                        data.res.forEach(item => {
-                            const row = document.createElement("div");
-                            row.className = "platz-row";
-                            row.innerHTML = `<span>📍 ${item.platz}</span> <strong>${item.menge} Stk.</strong>`;
-                            liste.appendChild(row);
-                        });
-                    } else {
-                        liste.innerHTML = "<p>Kein Bestand auf Lager.</p>";
-                    }
-                } else {
-                    alert("Artikel nicht gefunden.");
-                    status.innerText = "";
-                }
-            })
-            .catch(err => {
-                status.innerText = "Fehler: " + err;
-                console.error(err);
-            });
-    }
+        fetch(`${scriptUrl}?aktion=warensuche&artikelId=${encodeURIComponent(id)}`)
+            .then(response => response.json())
+            .then(data => {
+                status.innerText = "";
+                if (data.name) {
+                    resDiv.style.display = "block";
+                    document.getElementById("resName").innerText = data.name;
+                    document.getElementById("resPreis").innerText = "Preis: " + (data.preis || "n.a.");
+                    
+                    const liste = document.getElementById("platzListe");
+                    liste.innerHTML = "";
+                    
+                    if (data.res && data.res.length > 0) {
+                        data.res.forEach(item => {
+                            const row = document.createElement("div");
+                            row.className = "platz-row";
+                            row.innerHTML = `<span>📍 ${item.platz}</span> <strong>${item.menge} Stk.</strong>`;
+                            liste.appendChild(row);
+                        });
+                    } else {
+                        liste.innerHTML = "<p style='color:#64748b;'>Kein Bestand auf Lager.</p>";
+                    }
+                } else {
+                    alert("Artikel nicht gefunden.");
+                    status.innerText = "";
+                }
+            })
+            .catch(err => {
+                status.innerText = "Fehler!";
+                console.error(err);
+            });
+    }
 </script>
 
 </body>
