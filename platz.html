@@ -3,37 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Platz Info</title>
+  <title>Platz-Inhalt</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     :root { --p: #0f172a; --a: #2563eb; --bg: #f1f5f9; --accent: #8b5cf6; }
-    body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; }
-    header { background: white; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    .container { max-width: 450px; margin: 0 auto; padding: 15px; }
-    .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-    h3 { margin-top: 0; color: var(--p); border-bottom: 2px solid #eee; padding-bottom: 10px; }
-    #reader { width: 100%; border-radius: 15px; overflow: hidden; background: #000; margin-bottom: 15px; min-height: 200px; }
-    input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--p); }
+    header { background: white; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .container { max-width: 450px; margin: 0 auto; padding: 20px; }
+    .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    h3 { margin: 0 0 20px 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+    #reader { width: 100%; border-radius: 15px; overflow: hidden; background: #000; margin-bottom: 20px; }
     
-    .res-container { margin-top: 10px; }
-    .platz-header { font-weight: bold; color: var(--accent); margin-bottom: 10px; font-size: 1.1rem; display: none; }
+    .input-group { margin-bottom: 20px; }
+    label { display: block; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 5px; text-transform: uppercase; }
+    input { width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 16px; box-sizing: border-box; transition: border-color 0.2s; }
+    input:focus { outline: none; border-color: var(--a); }
+
+    .platz-header { font-weight: bold; color: var(--accent); margin: 10px 0; font-size: 1.1rem; display: none; padding: 10px; background: #f5f3ff; border-radius: 10px; text-align: center; }
     
     .item-row { 
       background: #f8fafc; 
-      padding: 12px; 
-      border-radius: 10px; 
-      border-left: 4px solid var(--accent); 
-      margin-bottom: 8px; 
+      padding: 15px; 
+      border-radius: 12px; 
+      border-left: 5px solid var(--accent); 
+      margin-bottom: 10px; 
       display: flex; 
       justify-content: space-between; 
       align-items: center;
+      animation: slideIn 0.3s ease-out;
     }
-    .item-name { font-weight: bold; color: var(--p); font-size: 0.95rem; }
-    .item-id { font-size: 0.75rem; color: #64748b; }
-    .item-qty { background: var(--accent); color: white; padding: 4px 10px; border-radius: 8px; font-weight: bold; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     
-    .status { text-align: center; color: #64748b; font-size: 0.9rem; margin-top: 10px; }
-    .back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: var(--a); font-weight: bold; }
+    .item-info { display: flex; flex-direction: column; }
+    .item-name { font-weight: 800; color: var(--p); font-size: 1rem; }
+    .item-id { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+    .item-qty { background: var(--accent); color: white; padding: 6px 12px; border-radius: 10px; font-weight: 900; font-size: 1.1rem; }
+    
+    .status { text-align: center; color: #94a3b8; font-size: 0.95rem; margin-top: 20px; padding: 20px; border: 2px dashed #e2e8f0; border-radius: 15px; }
+    .back { display: block; text-align: center; margin-top: 25px; text-decoration: none; color: var(--a); font-weight: bold; font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -45,115 +52,119 @@
     <h3>📍 Platz-Inhalt prüfen</h3>
     <div id="reader"></div>
     
-    <label style="font-size: 0.8rem; font-weight: bold; color: #64748b;">Platz-ID</label>
-    <input type="text" id="pi" placeholder="Platz scannen oder tippen..." oninput="check()">
+    <div class="input-group">
+      <label>Platz-ID scannen oder tippen</label>
+      <input type="text" id="pi" placeholder="z.B. A-01-05" oninput="check()">
+    </div>
     
     <div id="platzTitle" class="platz-header">Inhalt von: <span id="currentPlatz">-</span></div>
     
-    <div id="out" class="res-container">
-      <div class="status">Bereit zum Scannen...</div>
+    <div id="out">
+      <div class="status">Bitte Platz scannen oder ID eingeben...</div>
     </div>
   </div>
   
-  <a href="index.html" class="back">← Hauptmenü</a>
+  <a href="index.html" class="back">← Zurück zum Hauptmenü</a>
 </div>
 
 <script>
-  // Deine Web-App URL
+  // DEINE WEB-APP URL HIER EINTRAGEN
   const api = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
   const sc = new Html5Qrcode("reader");
+
+  let timeout = null;
 
   async function check() {
     const platzId = document.getElementById('pi').value.trim();
     const out = document.getElementById('out');
     const title = document.getElementById('platzTitle');
 
+    // Suche erst nach 300ms starten (Performance)
+    clearTimeout(timeout);
     if (platzId.length < 1) {
-      out.innerHTML = '<div class="status">Bereit zum Scannen...</div>';
+      out.innerHTML = '<div class="status">Bitte Platz scannen oder ID eingeben...</div>';
       title.style.display = "none";
       return;
     }
 
-    out.innerHTML = '<div class="status">Bestand wird berechnet...</div>';
+    timeout = setTimeout(async () => {
+      out.innerHTML = '<div class="status">Lade Daten...</div>';
 
-    try {
-      const response = await fetch(api + "?aktion=getLog");
-      const data = await response.json();
-      
-      // Flexibler Zugriff: Versuche 'Log', 'log' oder direkt das Array
-      const logDaten = data.Log || data.log || (Array.isArray(data) ? data : null);
-
-      if (!logDaten || logDaten.length < 2) {
-        out.innerHTML = '<div class="status">Keine Log-Daten in der Tabelle gefunden.</div>';
-        return;
-      }
-
-      const bestandAmPlatz = {};
-
-      // Wir gehen durch das Log und berechnen den Saldo für den gewählten Platz
-      // Indexe: [0:Zeit, 1:Typ, 2:ArtId, 3:Name, 4:Menge, 5:Platz]
-      logDaten.slice(1).forEach(entry => {
-        if (!entry || entry.length < 6) return; // Überspringe unvollständige Zeilen
-
-        const typ = entry[1];
-        const artId = entry[2];
-        const name = entry[3];
-        const menge = parseFloat(entry[4]) || 0;
-        const pId = entry[5] ? entry[5].toString().trim() : "";
-
-        if (pId.toLowerCase() === platzId.toLowerCase()) {
-          if (!bestandAmPlatz[artId]) {
-            bestandAmPlatz[artId] = { name: name, menge: 0 };
-          }
-          
-          // Einlagerung erhöht Bestand, alles andere (Entnahme) verringert ihn
-          if (typ === "Einlagerung") {
-            bestandAmPlatz[artId].menge += menge;
-          } else {
-            bestandAmPlatz[artId].menge -= menge;
-          }
+      try {
+        // Wir nutzen getLog, da dies alle Artikel an einem Platz erfasst
+        const response = await fetch(api + "?aktion=getLog");
+        const data = await response.json();
+        
+        // Dein Backend liefert {log: [...], stamm: [...]}
+        if (!data.log || data.log.length < 2) {
+          out.innerHTML = '<div class="status">Keine Daten im Log gefunden.</div>';
+          return;
         }
-      });
 
-      let html = "";
-      let hatInhalt = false;
+        const bestandAmPlatz = {};
 
-      document.getElementById('currentPlatz').innerText = platzId;
-      title.style.display = "block";
+        // Log-Verarbeitung (Header überspringen)
+        // Struktur: [Zeit, Typ, ArtId, Name, Menge, Platz, Preis]
+        data.log.slice(1).forEach(entry => {
+          const typ = entry[1];   // Einlagerung / Entnahme
+          const artId = entry[2]; // Artikel-ID
+          const name = entry[3];  // Bezeichnung
+          const menge = parseFloat(String(entry[4]).replace(',', '.')) || 0;
+          const pId = entry[5] ? entry[5].toString().trim() : "";
 
-      for (let id in bestandAmPlatz) {
-        const item = bestandAmPlatz[id];
-        // Nur Posten anzeigen, die rechnerisch noch da sind (> 0)
-        if (item.menge > 0) {
-          hatInhalt = true;
-          html += `
-            <div class="item-row">
-              <div style="display:flex; flex-direction:column;">
-                <span class="item-name">${item.name}</span>
-                <span class="item-id">ID: ${id}</span>
+          if (pId.toLowerCase() === platzId.toLowerCase()) {
+            if (!bestandAmPlatz[artId]) {
+              bestandAmPlatz[artId] = { name: name, menge: 0 };
+            }
+            // Berechnung basierend auf deinem Backend (Entnahme zieht ab)
+            if (typ === "Entnahme") {
+              bestandAmPlatz[artId].menge -= menge;
+            } else {
+              bestandAmPlatz[artId].menge += menge;
+            }
+          }
+        });
+
+        // HTML zusammenbauen
+        let html = "";
+        let hatInhalt = false;
+
+        document.getElementById('currentPlatz').innerText = platzId;
+        title.style.display = "block";
+
+        for (let id in bestandAmPlatz) {
+          const item = bestandAmPlatz[id];
+          // Nur anzeigen, wenn Bestand > 0 (kleine Toleranz für Rundungsfehler)
+          if (item.menge > 0.001) {
+            hatInhalt = true;
+            html += `
+              <div class="item-row">
+                <div class="item-info">
+                  <span class="item-name">${item.name}</span>
+                  <span class="item-id">Art-Nr: ${id}</span>
+                </div>
+                <span class="item-qty">${item.menge.toLocaleString('de-DE')}</span>
               </div>
-              <span class="item-qty">${item.menge}</span>
-            </div>
-          `;
+            `;
+          }
         }
+
+        out.innerHTML = hatInhalt ? html : '<div class="status">Dieser Platz ist aktuell leer.</div>';
+
+      } catch (e) {
+        console.error(e);
+        out.innerHTML = '<div class="status" style="color:#ef4444;">Verbindungsfehler zum Backend.</div>';
       }
-
-      out.innerHTML = hatInhalt ? html : '<div class="status">Dieser Platz ist aktuell leer.</div>';
-
-    } catch(e) { 
-      console.error("Fetch Fehler:", e);
-      out.innerHTML = '<div class="status" style="color:red;">Fehler bei der Verbindung zum Server.</div>'; 
-    }
+    }, 300);
   }
 
-  // Kamera-Start
-  sc.start({facingMode:"environment"}, {fps:15, qrbox:250}, (txt) => {
-    document.getElementById('pi').value = txt; 
+  // Scanner initialisieren
+  sc.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (txt) => {
+    document.getElementById('pi').value = txt;
     check();
-    if(window.navigator.vibrate) window.navigator.vibrate(50);
-  }).catch(err => {
-    console.warn("Kamera konnte nicht geladen werden:", err);
-    document.getElementById('out').innerHTML = '<div class="status">Kamera-Vorschau nicht verfügbar.</div>';
+    if (window.navigator.vibrate) window.navigator.vibrate(50);
+  }).catch(() => {
+    document.getElementById('out').innerHTML = '<div class="status">Kamera blockiert oder nicht vorhanden.</div>';
   });
 </script>
 
