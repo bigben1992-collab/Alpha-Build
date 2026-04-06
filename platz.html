@@ -15,9 +15,6 @@
     #reader { width: 100%; border-radius: 15px; overflow: hidden; background: #000; margin-bottom: 15px; }
     input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
     
-    .res-container { margin-top: 10px; }
-    .platz-header { font-weight: bold; color: var(--accent); margin-bottom: 10px; font-size: 1.1rem; display: none; }
-    
     .item-row { 
       background: #f8fafc; 
       padding: 12px; 
@@ -42,16 +39,13 @@
 
 <div class="container">
   <div class="card">
-    <h3>📍 Platz-Inhalt prüfen</h3>
+    <h3>📍 Platz-Inhalt</h3>
     <div id="reader"></div>
     
-    <label style="font-size: 0.8rem; font-weight: bold; color: #64748b;">Platz-ID</label>
     <input type="text" id="pi" placeholder="Platz scannen oder tippen..." oninput="check()">
     
-    <div id="platzTitle" class="platz-header">Inhalt von: <span id="currentPlatz">-</span></div>
-    
-    <div id="out" class="res-container">
-      <div class="status">Bereit zum Scannen...</div>
+    <div id="out">
+      <div class="status">Warte auf Scan/Eingabe...</div>
     </div>
   </div>
   
@@ -59,85 +53,71 @@
 </div>
 
 <script>
-  // WICHTIG: Nutze hier deine Web-App URL
+  // WICHTIG: Ersetze dies durch deine aktuelle Web-App URL
   const api = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
   const sc = new Html5Qrcode("reader");
 
-  // Wir laden die Log-Daten einmalig oder bei Bedarf, um alle Artikel zu finden
   async function check() {
-    const platzId = document.getElementById('pi').value.trim();
+    const platzId = document.getElementById('pi').value.trim().toLowerCase();
     if (platzId.length < 1) return;
 
     const out = document.getElementById('out');
-    out.innerHTML = '<div class="status">Suche läuft...</div>';
-
+    
     try {
-      // Wir nutzen getLog, um die komplette Liste zu erhalten (funktioniert mit deinem neuen Backend)
+      // Wir nutzen getLog, um die Datenstruktur zu erhalten
       const r = await fetch(api + "?aktion=getLog");
       const data = await r.json();
       
-      // Das Backend sendet {log: [...], stamm: [...]}. 
-      // Wir berechnen den aktuellen Bestand pro Platz basierend auf allen Buchungen.
-      const bestandAmPlatz = {};
+      /** * Da getLog im Backend aktuell log und stamm liefert, 
+       * aber wir die ECHTEN Bestände aus dem Sheet "Bestand" brauchen,
+       * nutzen wir hier einen Workaround: Wir summieren die Bestände
+       * aus dem Log, da wir das Backend nicht ändern dürfen.
+       */
+      const inventar = {};
 
-      // Wir gehen durch das Log (Header überspringen)
-      // Log Struktur: [zeit, typ, artId, name, menge, platz, preis]
       data.log.slice(1).forEach(entry => {
         const typ = entry[1];
         const artId = entry[2];
         const name = entry[3];
         const menge = parseFloat(entry[4]) || 0;
-        const pId = entry[5].toString().trim();
+        const pId = entry[5].toString().trim().toLowerCase();
 
-        if (pId.toLowerCase() === platzId.toLowerCase()) {
+        if (pId === platzId) {
+          if (!inventar[artId]) inventar[artId] = { name: name, menge: 0 };
+          // Bestand berechnen: Alles außer Entnahme ist positiv
           const delta = (typ === "Entnahme") ? -menge : menge;
-          
-          if (!bestandAmPlatz[artId]) {
-            bestandAmPlatz[artId] = { name: name, menge: 0 };
-          }
-          bestandAmPlatz[artId].menge += delta;
+          inventar[artId].menge += delta;
         }
       });
 
-      // Anzeige aufbauen
-      let html = "";
-      let hatInhalt = false;
+      let html = `<h4>Platz: ${platzId.toUpperCase()}</h4>`;
+      let gefunden = false;
 
-      document.getElementById('currentPlatz').innerText = platzId;
-      document.getElementById('platzTitle').style.display = "block";
-
-      for (let id in bestandAmPlatz) {
-        const item = bestandAmPlatz[id];
-        // Nur anzeigen, wenn Bestand > 0
-        if (item.menge > 0) {
-          hatInhalt = true;
+      for (let id in inventar) {
+        if (inventar[id].menge !== 0) { // Zeige auch negative Fehlerbestände zur Kontrolle
+          gefunden = true;
           html += `
             <div class="item-row">
               <div style="display:flex; flex-direction:column;">
-                <span class="item-name">${item.name}</span>
+                <span class="item-name">${inventar[id].name}</span>
                 <span class="item-id">ID: ${id}</span>
               </div>
-              <span class="item-qty">${item.menge}</span>
-            </div>
-          `;
+              <span class="item-qty">${inventar[id].menge}</span>
+            </div>`;
         }
       }
 
-      out.innerHTML = hatInhalt ? html : '<div class="status">Dieser Platz ist aktuell leer.</div>';
+      out.innerHTML = gefunden ? html : '<div class="status">Platz ist leer oder existiert nicht.</div>';
 
     } catch(e) { 
-      out.innerHTML = '<div class="status" style="color:red;">Fehler beim Laden der Daten.</div>'; 
+      out.innerHTML = '<div class="status">Fehler beim Laden. URL korrekt?</div>'; 
     }
   }
 
-  // Scanner Start
   sc.start({facingMode:"environment"}, {fps:15, qrbox:250}, (txt) => {
     document.getElementById('pi').value = txt; 
     check();
-    if(window.navigator.vibrate) window.navigator.vibrate(50);
-  }).catch(()=>{
-    document.getElementById('out').innerText = "Kamera nicht verfügbar.";
-  });
+  }).catch(()=>{});
 </script>
 
 </body>
