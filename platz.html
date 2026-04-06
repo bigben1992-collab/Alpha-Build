@@ -59,7 +59,7 @@
 </div>
 
 <script>
-  // URL DEINER WEB APP
+  // Deine Web-App URL
   const api = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
   const sc = new Html5Qrcode("reader");
 
@@ -77,42 +77,44 @@
     out.innerHTML = '<div class="status">Bestand wird berechnet...</div>';
 
     try {
-      // 1. Daten vom Backend holen
       const response = await fetch(api + "?aktion=getLog");
       const data = await response.json();
       
-      if (!data.log || data.log.length < 2) {
-        out.innerHTML = '<div class="status">Keine Log-Daten vorhanden.</div>';
+      // Flexibler Zugriff: Versuche 'Log', 'log' oder direkt das Array
+      const logDaten = data.Log || data.log || (Array.isArray(data) ? data : null);
+
+      if (!logDaten || logDaten.length < 2) {
+        out.innerHTML = '<div class="status">Keine Log-Daten in der Tabelle gefunden.</div>';
         return;
       }
 
-      // 2. Bestand aggregieren
       const bestandAmPlatz = {};
 
-      // Log-Struktur laut deinem Code: [Zeit, Typ, ArtId, Name, Menge, Platz, Preis]
-      // Indexe: Typ=1, ArtId=2, Name=3, Menge=4, Platz=5
-      data.log.slice(1).forEach(entry => {
+      // Wir gehen durch das Log und berechnen den Saldo für den gewählten Platz
+      // Indexe: [0:Zeit, 1:Typ, 2:ArtId, 3:Name, 4:Menge, 5:Platz]
+      logDaten.slice(1).forEach(entry => {
+        if (!entry || entry.length < 6) return; // Überspringe unvollständige Zeilen
+
         const typ = entry[1];
         const artId = entry[2];
         const name = entry[3];
         const menge = parseFloat(entry[4]) || 0;
         const pId = entry[5] ? entry[5].toString().trim() : "";
 
-        // Nur Einträge für den gesuchten Platz beachten
         if (pId.toLowerCase() === platzId.toLowerCase()) {
           if (!bestandAmPlatz[artId]) {
             bestandAmPlatz[artId] = { name: name, menge: 0 };
           }
           
+          // Einlagerung erhöht Bestand, alles andere (Entnahme) verringert ihn
           if (typ === "Einlagerung") {
             bestandAmPlatz[artId].menge += menge;
-          } else if (typ === "Entnahme") {
+          } else {
             bestandAmPlatz[artId].menge -= menge;
           }
         }
       });
 
-      // 3. HTML generieren
       let html = "";
       let hatInhalt = false;
 
@@ -121,7 +123,7 @@
 
       for (let id in bestandAmPlatz) {
         const item = bestandAmPlatz[id];
-        // Nur anzeigen, wenn rechnerisch noch etwas da ist
+        // Nur Posten anzeigen, die rechnerisch noch da sind (> 0)
         if (item.menge > 0) {
           hatInhalt = true;
           html += `
@@ -136,22 +138,22 @@
         }
       }
 
-      out.innerHTML = hatInhalt ? html : '<div class="status">Dieser Platz ist aktuell leer (Bestand 0).</div>';
+      out.innerHTML = hatInhalt ? html : '<div class="status">Dieser Platz ist aktuell leer.</div>';
 
     } catch(e) { 
-      console.error(e);
-      out.innerHTML = '<div class="status" style="color:red;">Fehler bei der Datenabfrage.</div>'; 
+      console.error("Fetch Fehler:", e);
+      out.innerHTML = '<div class="status" style="color:red;">Fehler bei der Verbindung zum Server.</div>'; 
     }
   }
 
-  // Scanner Initialisierung
+  // Kamera-Start
   sc.start({facingMode:"environment"}, {fps:15, qrbox:250}, (txt) => {
     document.getElementById('pi').value = txt; 
     check();
     if(window.navigator.vibrate) window.navigator.vibrate(50);
   }).catch(err => {
-    console.error("Kamera-Fehler:", err);
-    document.getElementById('out').innerHTML = '<div class="status">Kamera nicht aktiv oder blockiert.</div>';
+    console.warn("Kamera konnte nicht geladen werden:", err);
+    document.getElementById('out').innerHTML = '<div class="status">Kamera-Vorschau nicht verfügbar.</div>';
   });
 </script>
 
