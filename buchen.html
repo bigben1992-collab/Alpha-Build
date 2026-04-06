@@ -12,6 +12,13 @@
     .container { max-width: 450px; margin: 0 auto; padding: 15px; }
     .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
     #reader { width: 100%; border-radius: 15px; overflow: hidden; aspect-ratio: 1; background: #000; margin-bottom: 15px; }
+    
+    /* Der Kontrastfilter für das Video-Element */
+    #reader video {
+      filter: contrast(1.4) brightness(1.1) grayscale(1);
+      object-fit: cover;
+    }
+
     input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; }
     .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .btn { padding: 16px; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; }
@@ -39,6 +46,7 @@
   <script>
     var api = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec";
     var sc = new Html5Qrcode("reader");
+
     async function run(t) {
       var art = document.getElementById('a').value, plz = document.getElementById('p').value;
       if(!art || !plz) return alert("Scan fehlt!");
@@ -47,17 +55,43 @@
       try {
         var r = await fetch(api+"?aktion=warensuche&artikelId="+art);
         var d = await r.json();
-        if(!d.name) { document.getElementById('ov').style.display='none'; nN = prompt("Name für neuen Artikel:"); if(!nN) return; document.getElementById('ov').style.display='flex'; }
+        if(!d.name) { 
+          document.getElementById('ov').style.display='none'; 
+          nN = prompt("Name für neuen Artikel:"); 
+          if(!nN) return; 
+          document.getElementById('ov').style.display='flex'; 
+        }
         await fetch(api, {method:"POST", mode:"no-cors", body:JSON.stringify({daten:{typ:t, artikel:art, menge:document.getElementById('m').value, platz:plz, neuerName:nN}})});
         alert("Erfolgreich!"); document.getElementById('a').value="";
       } catch(e) { alert("Fehler!"); }
       document.getElementById('ov').style.display='none';
     }
-    sc.start({facingMode:"environment"}, {fps:20, qrbox:250}, (txt) => {
-      if(!document.getElementById('p').value) document.getElementById('p').value = txt;
-      else document.getElementById('a').value = txt;
-      if(window.navigator.vibrate) window.navigator.vibrate(50);
-    }).catch(()=>{});
+
+    // Scanner Start mit Optimierung
+    sc.start(
+      { facingMode: "environment" }, 
+      { 
+        fps: 20, 
+        qrbox: { width: 250, height: 250 },
+        // Höhere Video-Auflösung erzwingen für bessere Details
+        aspectRatio: 1.0
+      }, 
+      (txt) => {
+        if(!document.getElementById('p').value) document.getElementById('p').value = txt;
+        else document.getElementById('a').value = txt;
+        if(window.navigator.vibrate) window.navigator.vibrate(50);
+      }
+    ).then(() => {
+      // Sobald die Kamera läuft, wenden wir die Filter-Logik an
+      const video = document.querySelector('#reader video');
+      if (video) {
+        // CSS Filter: Erhöht Kontrast und wandelt in Graustufen um (besser für Barcodes)
+        video.style.filter = "contrast(1.5) brightness(1.0) grayscale(1)";
+      }
+    }).catch(err => {
+      console.error("Kamera-Fehler:", err);
+    });
   </script>
 </body>
 </html>
+
