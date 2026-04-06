@@ -4,35 +4,28 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Einkauf</title>
+  <title>Einkauf & Bestand</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    :root { --primary: #2563eb; --accent: #0891b2; --error: #ef4444; --bg: #f1f5f9; --p: #0f172a; }
+    :root { --primary: #2563eb; --accent: #0891b2; --bg: #f1f5f9; --p: #0f172a; }
     body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; }
-    
     header { background: white; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .container { max-width: 450px; margin: 0 auto; padding: 15px; }
-    
     .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
     h2 { margin-top: 0; color: var(--p); border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 1.2rem; }
-    
     .form-group { margin-bottom: 15px; }
     label { display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 5px; font-weight: bold; }
     input { width: 100%; padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-    
     #reader { width: 100%; border-radius: 15px; overflow: hidden; margin-bottom: 15px; display: none; background: #000; }
-    
     .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 10px; color: white; }
     .btn-scan { background: #64748b; }
     .btn-search { background: var(--primary); }
     .btn-buy { background: var(--accent); margin-top: 10px; }
-    .btn:active { transform: scale(0.98); opacity: 0.9; }
-    .btn:disabled { background: #cbd5e1; cursor: not-allowed; }
-
     .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin: 15px 0; display: none; border-left: 4px solid var(--accent); }
     .calc-row { display: flex; justify-content: space-between; font-weight: bold; margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
     #status { text-align: center; font-weight: bold; margin-top: 10px; font-size: 0.9rem; }
     .back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: var(--primary); font-weight: bold; }
+    .badge { background: #e2e8f0; padding: 2px 8px; border-radius: 5px; font-size: 0.8rem; }
   </style>
 </head>
 <body>
@@ -41,7 +34,7 @@
 
 <div class="container">
   <div class="card">
-    <h2>📦 Einkauf / Wareneingang</h2>
+    <h2>📦 Einkauf / Bestand +</h2>
     
     <div id="reader"></div>
 
@@ -54,28 +47,40 @@
     <button class="btn btn-search" onclick="suchen()" id="searchBtn">Artikel suchen</button>
 
     <div id="artInfo" class="info-box">
-      <div style="font-weight: bold; color: var(--accent); font-size: 1.1rem;" id="dispName">Name</div>
-      <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">
-        Platz: <span id="dispPlatz">-</span> | Aktueller Bestand: <span id="dispMenge">0</span>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="font-weight: bold; color: var(--accent); font-size: 1.1rem;" id="dispName">Name</div>
+        <span class="badge" id="dispMenge">0</span>
       </div>
       
-      <label>Einkaufsmenge</label>
-      <input type="number" id="eMenge" value="1" min="1" oninput="rechnen()">
+      <div style="font-size: 0.85rem; color: #64748b; margin: 10px 0;">
+        Aktueller Preis: <span id="dispOldEk" style="font-weight: bold;">0.00</span> €
+      </div>
+
+      <div class="form-group">
+        <label>Lagerplatz</label>
+        <input type="text" id="ePlatz" placeholder="z.B. A-01">
+      </div>
       
-      <label style="margin-top:10px;">Einkaufspreis (€ pro Stück)</label>
-      <input type="number" id="ePreis" step="0.01" placeholder="0.00" oninput="rechnen()">
+      <div class="form-group">
+        <label>Einkaufsmenge</label>
+        <input type="number" id="eMenge" value="1" min="1" oninput="rechnen()">
+      </div>
+      
+      <div class="form-group">
+        <label>Neuer Einkaufspreis (€ / Stk)</label>
+        <input type="number" id="ePreis" step="0.01" placeholder="0.00" oninput="rechnen()">
+      </div>
       
       <div class="calc-row">
-        <span>Gesamtkosten Einkauf:</span>
+        <span>Gesamt-Einkaufswert:</span>
         <span id="totalKosten">0.00 €</span>
       </div>
       
-      <button class="btn btn-buy" onclick="einkaufen()" id="buyBtn">Einkauf buchen</button>
+      <button class="btn btn-buy" onclick="einkaufen()" id="buyBtn">Bestand & Preis aktualisieren</button>
     </div>
 
     <div id="status"></div>
   </div>
-  
   <a href="index.html" class="back">← Hauptmenü</a>
 </div>
 
@@ -89,12 +94,7 @@
       r.style.display = 'block';
       scanner = new Html5Qrcode("reader");
       scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
-        (txt) => { 
-          document.getElementById('artId').value = txt; 
-          if(window.navigator.vibrate) window.navigator.vibrate(50);
-          stopScan(); 
-          suchen(); 
-        }
+        (txt) => { document.getElementById('artId').value = txt; stopScan(); suchen(); }
       ).catch(() => alert("Kamera-Fehler!"));
       document.getElementById('scanBtn').innerText = "🛑 Stop";
     } else { stopScan(); }
@@ -108,65 +108,96 @@
   }
 
   async function suchen() {
-    const id = document.getElementById('artId').value;
+    const id = document.getElementById('artId').value.trim();
     if(!id) return;
-    document.getElementById('status').innerText = "Suche Artikel...";
+    document.getElementById('status').innerText = "Suche läuft...";
     
     try {
       const res = await fetch(`${scriptUrl}?aktion=warensuche&artikelId=${encodeURIComponent(id)}`);
       const data = await res.json();
       
-      if(data.res && data.res.length > 0) {
+      if(data.name) {
         document.getElementById('dispName').innerText = data.name;
-        document.getElementById('dispPlatz').innerText = data.res[0].platz;
-        document.getElementById('dispMenge').innerText = data.res[0].menge;
         
-        // Setze den alten EK als Vorschlag in das Preisfeld
-        let ek = data.preis.toString().replace('€','').replace(',','.').trim();
-        document.getElementById('ePreis').value = parseFloat(ek) || "";
+        // Platz-Logik: Nimm den ersten gefundenen Platz oder lass das Feld leer für Neueingabe
+        let platz = data.res.length > 0 ? data.res[0].platz : "";
+        let bestand = data.res.length > 0 ? data.res[0].menge : 0;
+        
+        document.getElementById('ePlatz').value = platz;
+        document.getElementById('dispMenge').innerText = "Bestand: " + bestand;
+        
+        // Preis-Parsing (Entfernt € und konvertiert zu Float)
+        let ekStr = data.preis.toString().replace(/[^-0-9,.]/g, '').replace(',', '.');
+        let ekVal = parseFloat(ekStr) || 0;
+        
+        document.getElementById('dispOldEk').innerText = ekVal.toFixed(2);
+        document.getElementById('ePreis').value = ekVal > 0 ? ekVal : ""; 
         
         document.getElementById('artInfo').style.display = 'block';
         document.getElementById('status').innerText = "";
         rechnen();
       } else {
-        alert("Artikel nicht im System gefunden!");
+        alert("Artikel existiert nicht in Stammdaten!");
         document.getElementById('artInfo').style.display = 'none';
+        document.getElementById('status').innerText = "";
       }
-    } catch(e) { document.getElementById('status').innerText = "Fehler!"; }
+    } catch(e) { 
+      document.getElementById('status').innerText = "Fehler bei der Suche!";
+    }
   }
 
   function rechnen() {
     const m = parseFloat(document.getElementById('eMenge').value) || 0;
-    const ep = parseFloat(document.getElementById('ePreis').value) || 0;
-    
-    document.getElementById('totalKosten').innerText = (m * ep).toFixed(2) + " €";
-    document.getElementById('buyBtn').disabled = (m <= 0);
+    const p = parseFloat(document.getElementById('ePreis').value) || 0;
+    document.getElementById('totalKosten').innerText = (m * p).toFixed(2) + " €";
   }
 
   async function einkaufen() {
+    const id = document.getElementById('artId').value.trim();
+    const platz = document.getElementById('ePlatz').value.trim();
+    const menge = document.getElementById('eMenge').value;
+    const preis = document.getElementById('ePreis').value;
+
+    if(!platz) { alert("Bitte einen Lagerplatz angeben!"); return; }
+
     const btn = document.getElementById('buyBtn');
-    btn.disabled = true; btn.innerText = "Speichere...";
+    btn.disabled = true; btn.innerText = "Übermittle Daten...";
     
     const payload = {
       daten: {
-        typ: "Einlagerung", // Backend-Logik für Bestandserhöhung
-        artikel: document.getElementById('artId').value,
-        menge: document.getElementById('eMenge').value,
-        platz: document.getElementById('dispPlatz').innerText,
-        preis: document.getElementById('ePreis').value
+        typ: "Zulauf", // Backend: Alles außer "Entnahme" addiert die Menge
+        artikel: id,
+        menge: menge,
+        platz: platz,
+        preis: preis  // Backend: Triggert updateStammPreis
       }
     };
 
     try {
-      const response = await fetch(scriptUrl, { method: 'POST', body: JSON.stringify(payload) });
-      document.getElementById('status').innerText = "✅ Einkauf gebucht!";
-      document.getElementById('artInfo').style.display = 'none';
-      document.getElementById('artId').value = "";
+      const response = await fetch(scriptUrl, { 
+        method: 'POST', 
+        body: JSON.stringify(payload) 
+      });
+      const result = await response.json();
+
+      if(result.status === "success") {
+        document.getElementById('status').innerText = "✅ Erfolgreich gebucht!";
+        if(window.navigator.vibrate) window.navigator.vibrate(100);
+        
+        setTimeout(() => {
+          document.getElementById('artInfo').style.display = 'none';
+          document.getElementById('artId').value = "";
+          document.getElementById('status').innerText = "";
+        }, 2000);
+      } else {
+        alert("Fehler: " + result.msg);
+      }
     } catch(e) { 
-      alert("Fehler beim Speichern!"); 
-      document.getElementById('status').innerText = "❌ Fehler";
+      alert("Netzwerkfehler oder Backend nicht erreichbar!"); 
+    } finally {
+      btn.disabled = false; 
+      btn.innerText = "Bestand & Preis aktualisieren";
     }
-    btn.disabled = false; btn.innerText = "Einkauf buchen";
   }
 </script>
 </body>
