@@ -5,161 +5,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verkaufs-Terminal</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    :root { --primary: #2c3e50; --accent: #27ae60; --error: #e74c3c; }
-    body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; }
-    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
-    h2 { color: var(--primary); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    :root { --primary: #2c3e50; --accent: #27ae60; --error: #e74c3c; --secondary: #3498db; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 10px; display: flex; justify-content: center; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+    h2 { color: var(--primary); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
     
-    .form-group { margin-bottom: 15px; }
+    .form-group { margin-bottom: 15px; position: relative; }
     label { display: block; font-size: 0.9em; color: #666; margin-bottom: 5px; }
     input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-    input:focus { border-color: var(--accent); outline: none; }
-
-    .info-box { background: #f8f9fa; border-left: 4px solid var(--accent); padding: 15px; margin: 15px 0; display: none; }
-    .calc-row { display: flex; justify-content: space-between; font-weight: bold; margin-top: 10px; color: var(--primary); }
     
-    button { width: 100%; padding: 15px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-    .btn-search { background: var(--primary); color: white; margin-bottom: 10px; }
-    .btn-sell { background: var(--accent); color: white; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
+    /* Scanner Bereich */
+    #reader { width: 100%; background: #000; border-radius: 8px; overflow: hidden; display: none; margin-bottom: 15px; }
     
-    #status { margin-top: 15px; text-align: center; font-weight: bold; }
-  </style>
-</head>
-<body>
-
-<div class="card">
-  <h2>Verkaufs-Terminal</h2>
-  
-  <div class="form-group">
-    <label>Artikel-ID / Barcode</label>
-    <input type="text" id="artId" placeholder="ID eingeben..." onkeypress="if(event.key==='Enter') suchen()">
-  </div>
-  
-  <button class="btn-search" onclick="suchen()" id="btnSearch">Artikel suchen</button>
-
-  <div id="artInfo" class="info-box">
-    <strong id="dispName">Artikelname</strong><br>
-    <small>Lagerplatz: <span id="dispPlatz">-</span></small> | 
-    <small>Bestand: <span id="dispMenge">0</span></small><br>
-    <small>Einkaufspreis: <span id="dispEk">0.00</span> €</small>
-    
-    <div style="margin-top:15px; border-top:1px solid #ddd; pt-10">
-      <div class="form-group">
-        <label>Verkaufsmenge</label>
-        <input type="number" id="vMenge" value="1" min="1" oninput="rechnen()">
-      </div>
-      <div class="form-group">
-        <label>Verkaufspreis (€ pro Stück)</label>
-        <input type="number" id="vPreis" step="0.01" placeholder="0.00" oninput="rechnen()">
-      </div>
-      
-      <div class="calc-row">
-        <span>Gesamtumsatz:</span>
-        <span id="totalUmsatz">0.00 €</span>
-      </div>
-      <div class="calc-row" style="color: var(--accent); font-size: 0.85em;">
-        <span>Gewinn (Marge):</span>
-        <span id="totalGewinn">0.00 €</span>
-      </div>
-    </div>
-    
-    <button class="btn-sell" style="margin-top:20px;" onclick="verkaufen()" id="btnSell">Verkauf abschließen</button>
-  </div>
-
-  <div id="status"></div>
-</div>
-
-<script>
-  let currentArt = null;
-  const scriptUrl = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec"; // WICHTIG: Hier deine URL einfügen
-
-  async function suchen() {
-    const id = document.getElementById('artId').value;
-    const status = document.getElementById('status');
-    if(!id) return;
-
-    status.innerText = "Suche läuft...";
-    status.style.color = "black";
-    
-    try {
-      const response = await fetch(`${scriptUrl}?aktion=warensuche&artikelId=${id}`);
-      const data = await response.json();
-      
-      if(data.res && data.res.length > 0) {
-        currentArt = data;
-        document.getElementById('dispName').innerText = data.name;
-        document.getElementById('dispPlatz').innerText = data.res[0].platz;
-        document.getElementById('dispMenge').innerText = data.res[0].menge;
-        
-        // Preis parsen (entfernt € und konvertiert Komma)
-        let ek = data.preis.replace('€', '').replace(',', '.').trim();
-        document.getElementById('dispEk').innerText = ek;
-        
-        document.getElementById('artInfo').style.display = 'block';
-        status.innerText = "";
-        rechnen();
-      } else {
-        status.innerText = "Artikel nicht im Bestand!";
-        status.style.color = "var(--error)";
-        document.getElementById('artInfo').style.display = 'none';
-      }
-    } catch (e) {
-      status.innerText = "Fehler: " + e;
-    }
-  }
-
-  function rechnen() {
-    const menge = parseFloat(document.getElementById('vMenge').value) || 0;
-    const vk = parseFloat(document.getElementById('vPreis').value) || 0;
-    const ek = parseFloat(document.getElementById('dispEk').innerText) || 0;
-    
-    const umsatz = menge * vk;
-    const gewinn = (vk - ek) * menge;
-    
-    document.getElementById('totalUmsatz').innerText = umsatz.toFixed(2) + " €";
-    document.getElementById('totalGewinn').innerText = gewinn.toFixed(2) + " €";
-    
-    // Validierung: Nicht mehr verkaufen als da ist
-    const lagerBestand = parseFloat(document.getElementById('dispMenge').innerText);
-    document.getElementById('btnSell').disabled = (menge > lagerBestand || menge <= 0);
-  }
-
-  async function verkaufen() {
-    const btn = document.getElementById('btnSell');
-    btn.disabled = true;
-    btn.innerText = "Verarbeitung...";
-
-    const payload = {
-      daten: {
-        typ: "Entnahme",
-        artikel: document.getElementById('artId').value,
-        menge: document.getElementById('vMenge').value,
-        platz: document.getElementById('dispPlatz').innerText,
-        preis: document.getElementById('vPreis').value // Sendet VK an das Log
-      }
-    };
-
-    try {
-      await fetch(scriptUrl, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      
-      document.getElementById('status').innerText = "Verkauf erfolgreich gebucht!";
-      document.getElementById('status').style.color = "var(--accent)";
-      document.getElementById('artInfo').style.display = 'none';
-      document.getElementById('artId').value = "";
-      document.getElementById('artId').focus();
-    } catch (e) {
-      document.getElementById('status').innerText = "Fehler beim Senden!";
-    } finally {
-      btn.disabled = false;
-      btn.innerText = "Verkauf abschließen";
-    }
-  }
-</script>
-
-</body>
-</html>
+    .info-box { background: #f8f9fa; border-left: 4px solid var(--accent); padding: 15px; margin: 15px 0;
