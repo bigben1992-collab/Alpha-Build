@@ -3,20 +3,157 @@
 <head>
   <base target="_top">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verkaufs-Terminal</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Verkauf</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    :root { --primary: #2c3e50; --accent: #27ae60; --error: #e74c3c; --secondary: #3498db; }
-    body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 10px; display: flex; justify-content: center; }
-    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
-    h2 { color: var(--primary); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
+    :root { --primary: #2563eb; --accent: #22c55e; --error: #ef4444; --bg: #f1f5f9; }
+    body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; justify-content: center; }
+    .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+    h2 { margin-top: 0; color: #0f172a; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 1.2rem; }
     
-    .form-group { margin-bottom: 15px; position: relative; }
-    label { display: block; font-size: 0.9em; color: #666; margin-bottom: 5px; }
-    input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 5px; font-weight: bold; }
+    input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
     
-    /* Scanner Bereich */
-    #reader { width: 100%; background: #000; border-radius: 8px; overflow: hidden; display: none; margin-bottom: 15px; }
+    #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 15px; display: none; background: #000; }
     
-    .info-box { background: #f8f9fa; border-left: 4px solid var(--accent); padding: 15px; margin: 15px 0;
+    .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 10px; color: white; }
+    .btn-scan { background: #64748b; }
+    .btn-search { background: var(--primary); }
+    .btn-sell { background: var(--accent); margin-top: 10px; }
+    .btn:active { transform: scale(0.98); opacity: 0.9; }
+    .btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+    .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin: 15px 0; display: none; }
+    .calc-row { display: flex; justify-content: space-between; font-weight: bold; margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+    #status { text-align: center; font-weight: bold; margin-top: 10px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>🛒 Verkauf / Kasse</h2>
+  
+  <div id="reader"></div>
+
+  <div class="form-group">
+    <label>Artikel-ID / Barcode</label>
+    <input type="text" id="artId" placeholder="ID eingeben..." onkeypress="if(event.key==='Enter') suchen()">
+  </div>
+  
+  <button class="btn btn-scan" onclick="toggleScanner()" id="scanBtn">📷 Barcode Scannen</button>
+  <button class="btn btn-search" onclick="suchen()" id="searchBtn">Artikel suchen</button>
+
+  <div id="artInfo" class="info-box">
+    <div style="font-weight: bold; color: var(--primary); font-size: 1.1rem;" id="dispName">Name</div>
+    <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">
+      Platz: <span id="dispPlatz">-</span> | Bestand: <span id="dispMenge">0</span><br>
+      EK-Preis: <span id="dispEk">0.00</span> €
+    </div>
+    
+    <label>Menge</label>
+    <input type="number" id="vMenge" value="1" min="1" oninput="rechnen()">
+    
+    <label style="margin-top:10px;">Verkaufspreis (€ pro Stück)</label>
+    <input type="number" id="vPreis" step="0.01" placeholder="0.00" oninput="rechnen()">
+    
+    <div class="calc-row">
+      <span>Gesamtumsatz:</span>
+      <span id="totalUmsatz">0.00 €</span>
+    </div>
+    <div class="calc-row" style="color: var(--accent); border:none; padding-top:0;">
+      <span>Marge (Gewinn):</span>
+      <span id="totalGewinn">0.00 €</span>
+    </div>
+    
+    <button class="btn btn-sell" onclick="verkaufen()" id="sellBtn">Verkauf buchen</button>
+  </div>
+
+  <div id="status"></div>
+</div>
+
+<script>
+  const scriptUrl = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec";
+  let scanner = null;
+
+  function toggleScanner() {
+    const r = document.getElementById('reader');
+    if (!scanner) {
+      r.style.display = 'block';
+      scanner = new Html5Qrcode("reader");
+      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
+        (txt) => { document.getElementById('artId').value = txt; stopScan(); suchen(); }
+      ).catch(() => alert("Kamera-Fehler!"));
+      document.getElementById('scanBtn').innerText = "🛑 Stop";
+    } else { stopScan(); }
+  }
+
+  function stopScan() {
+    if(scanner) {
+      scanner.stop().then(() => { scanner = null; document.getElementById('reader').style.display = 'none'; });
+      document.getElementById('scanBtn').innerText = "📷 Barcode Scannen";
+    }
+  }
+
+  async function suchen() {
+    const id = document.getElementById('artId').value;
+    if(!id) return;
+    document.getElementById('status').innerText = "Suche...";
+    
+    try {
+      const res = await fetch(`${scriptUrl}?aktion=warensuche&artikelId=${encodeURIComponent(id)}`);
+      const data = await res.json();
+      
+      if(data.res && data.res.length > 0) {
+        document.getElementById('dispName').innerText = data.name;
+        document.getElementById('dispPlatz').innerText = data.res[0].platz;
+        document.getElementById('dispMenge').innerText = data.res[0].menge;
+        let ek = data.preis.toString().replace('€','').replace(',','.').trim();
+        document.getElementById('dispEk').innerText = parseFloat(ek) || 0;
+        document.getElementById('artInfo').style.display = 'block';
+        document.getElementById('status').innerText = "";
+        rechnen();
+      } else {
+        alert("Artikel nicht gefunden!");
+        document.getElementById('artInfo').style.display = 'none';
+      }
+    } catch(e) { document.getElementById('status').innerText = "Fehler!"; }
+  }
+
+  function rechnen() {
+    const m = parseFloat(document.getElementById('vMenge').value) || 0;
+    const vp = parseFloat(document.getElementById('vPreis').value) || 0;
+    const ek = parseFloat(document.getElementById('dispEk').innerText) || 0;
+    const lager = parseFloat(document.getElementById('dispMenge').innerText);
+    
+    document.getElementById('totalUmsatz').innerText = (m * vp).toFixed(2) + " €";
+    document.getElementById('totalGewinn').innerText = ((vp - ek) * m).toFixed(2) + " €";
+    document.getElementById('sellBtn').disabled = (m > lager || m <= 0);
+  }
+
+  async function verkaufen() {
+    const btn = document.getElementById('sellBtn');
+    btn.disabled = true; btn.innerText = "Sendet...";
+    
+    const payload = {
+      daten: {
+        typ: "Entnahme",
+        artikel: document.getElementById('artId').value,
+        menge: document.getElementById('vMenge').value,
+        platz: document.getElementById('dispPlatz').innerText,
+        preis: document.getElementById('vPreis').value
+      }
+    };
+
+    try {
+      await fetch(scriptUrl, { method: 'POST', body: JSON.stringify(payload) });
+      document.getElementById('status').innerText = "✅ Erfolg!";
+      document.getElementById('artInfo').style.display = 'none';
+      document.getElementById('artId').value = "";
+    } catch(e) { alert("Fehler beim Speichern!"); }
+    btn.disabled = false; btn.innerText = "Verkauf buchen";
+  }
+</script>
+</body>
+</html>
