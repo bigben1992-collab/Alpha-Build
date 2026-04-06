@@ -3,38 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Platz-Abfrage</title>
+  <title>Platz-Suche (Multi)</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     :root { --p: #0f172a; --a: #2563eb; --bg: #f1f5f9; }
     body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--p); }
     .card { background: white; max-width: 400px; margin: 0 auto; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    header { text-align: center; margin-bottom: 20px; font-weight: bold; color: var(--a); }
+    header { text-align: center; margin-bottom: 15px; font-weight: bold; color: var(--a); font-size: 1.2rem; }
     
     #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; margin-bottom: 15px; }
-    
-    label { font-size: 0.8rem; font-weight: bold; color: #64748b; }
     input { width: 100%; padding: 12px; margin: 8px 0 15px 0; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
     
-    .result-box { display: none; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 10px; }
+    .result-box { display: none; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 10px; min-height: 180px; }
     .row { margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
-    .row:last-child { border: none; }
     .val { font-weight: bold; font-size: 1.1rem; display: block; color: var(--p); }
-    .lbl { font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
+    .lbl { font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
+
+    .nav-bar { display: none; justify-content: space-between; align-items: center; margin-top: 15px; gap: 10px; }
+    button { background: var(--a); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1; transition: opacity 0.2s; }
+    button:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .page-info { font-size: 0.85rem; font-weight: bold; color: #64748b; white-space: nowrap; }
 
     .status { text-align: center; color: #94a3b8; padding: 20px; }
-    .back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: var(--a); font-weight: bold; }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <header>LAGER-ABFRAGE</header>
-  
+  <header>PLATZ-INHALT</header>
   <div id="reader"></div>
 
-  <label>Platz scannen oder eingeben (Spalte A)</label>
-  <input type="text" id="pi" placeholder="z.B. Regal-01" oninput="suche()">
+  <label>Platz scannen oder eingeben</label>
+  <input type="text" id="pi" placeholder="z.B. A-01" oninput="starteSuche()">
 
   <div id="out">
     <div id="msg" class="status">Warte auf Eingabe...</div>
@@ -49,66 +49,104 @@
         <span id="colC" class="val">-</span>
       </div>
       <div class="row">
-        <span class="lbl">Menge (Spalte D)</span>
+        <span class="lbl">Bestand (Spalte D)</span>
         <span id="colD" class="val">-</span>
       </div>
     </div>
   </div>
+
+  <div id="nav" class="nav-bar">
+    <button id="prev" onclick="blaettern(-1)">← Zurück</button>
+    <span id="counter" class="page-info">0 / 0</span>
+    <button id="next" onclick="blaettern(1)">Weiter →</button>
+  </div>
 </div>
 
-<a href="index.html" class="back">← Zum Menü</a>
-
 <script>
-  // DEINE URL
   const api = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
   const sc = new Html5Qrcode("reader");
 
-  async function suche() {
-    const pid = document.getElementById('pi').value.trim();
+  let alleTreffer = [];
+  let aktuellerIndex = 0;
+
+  async function starteSuche() {
+    const pid = document.getElementById('pi').value.trim().toLowerCase();
     const resBox = document.getElementById('res');
+    const nav = document.getElementById('nav');
     const msg = document.getElementById('msg');
 
     if (pid.length < 1) {
       resBox.style.display = "none";
+      nav.style.display = "none";
       msg.innerText = "Warte auf Eingabe...";
       return;
     }
 
-    msg.innerText = "Suche in Spalte A...";
+    msg.innerText = "Lade alle Daten...";
 
     try {
-      // Nutzt aktion=pruefung -> ruft getPlz(ss, platzId) auf
-      const response = await fetch(`${api}?aktion=pruefung&platzId=${encodeURIComponent(pid)}`);
+      // WICHTIG: Wir nutzen getLog, um alle Bestände zu sehen, 
+      // da getPlz im Backend nach dem ersten Treffer stoppt.
+      const response = await fetch(`${api}?aktion=getLog`);
       const data = await response.json();
+      
+      const logData = data.log || data.Log;
+      if (!logData) throw new Error("Kein Log");
 
-      // Dein Backend gibt zurück: {res: {artikel: d[i][1], name: d[i][2], menge: d[i][3]}}
-      if (data && data.res) {
+      // Wir berechnen den Bestand pro Artikel für diesen Platz
+      const bestandMap = {};
+      logData.slice(1).forEach(row => {
+        const rowPlatz = String(row[5]).trim().toLowerCase();
+        if (rowPlatz === pid) {
+          const artId = row[2];
+          if (!bestandMap[artId]) {
+            bestandMap[artId] = { id: artId, name: row[3], menge: 0 };
+          }
+          const menge = parseFloat(String(row[4]).replace(',', '.')) || 0;
+          bestandMap[artId].menge += (row[1] === "Entnahme" ? -menge : menge);
+        }
+      });
+
+      // Nur Artikel mit echtem Bestand > 0
+      alleTreffer = Object.values(bestandMap).filter(a => a.menge > 0);
+
+      if (alleTreffer.length > 0) {
+        aktuellerIndex = 0;
         msg.style.display = "none";
         resBox.style.display = "block";
-        
-        document.getElementById('colB').innerText = data.res.artikel; // Spalte B
-        document.getElementById('colC').innerText = data.res.name;    // Spalte C
-        document.getElementById('colD').innerText = data.res.menge;   // Spalte D
+        nav.style.display = "flex";
+        aktualisiereAnzeige();
       } else {
         resBox.style.display = "none";
+        nav.style.display = "none";
         msg.style.display = "block";
-        msg.innerText = "❌ Kein Eintrag für diesen Platz gefunden.";
+        msg.innerText = "❌ Platz ist aktuell leer.";
       }
     } catch (e) {
-      msg.innerText = "⚠️ Fehler: Verbindung zum Backend fehlgeschlagen.";
-      console.error(e);
+      msg.innerText = "⚠️ Fehler beim Laden der Bestandsliste.";
     }
   }
 
-  // Kamera-Start
+  function aktualisiereAnzeige() {
+    const item = alleTreffer[aktuellerIndex];
+    document.getElementById('colB').innerText = item.id;
+    document.getElementById('colC').innerText = item.name;
+    document.getElementById('colD').innerText = item.menge;
+    
+    document.getElementById('counter').innerText = `${aktuellerIndex + 1} / ${alleTreffer.length}`;
+    document.getElementById('prev').disabled = (aktuellerIndex === 0);
+    document.getElementById('next').disabled = (aktuellerIndex === alleTreffer.length - 1);
+  }
+
+  function blaettern(richtung) {
+    aktuellerIndex += richtung;
+    aktualisiereAnzeige();
+  }
+
   sc.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (txt) => {
     document.getElementById('pi').value = txt;
-    suche();
-    if(window.navigator.vibrate) window.navigator.vibrate(50);
-  }).catch(() => {
-    document.getElementById('msg').innerText = "Kamera konnte nicht gestartet werden.";
+    starteSuche();
   });
 </script>
-
 </body>
 </html>
