@@ -67,10 +67,19 @@
       background-color: #f8fafc;
     }
 
+    /* Bilanz-Kachel über die volle Breite für ein besseres Layout bei ungerader Anzahl */
+    .full-width {
+      grid-column: span 2;
+      flex-direction: row;
+      gap: 20px;
+      padding: 20px;
+    }
+
     .icon-box {
       font-size: 2.2rem;
       margin-bottom: 12px;
     }
+    .full-width .icon-box { margin-bottom: 0; }
 
     .label {
       font-weight: 700;
@@ -90,7 +99,8 @@
     .platz { border-top: 5px solid #8b5cf6; }
     .preise { border-top: 5px solid #f59e0b; }
     .verkauf { border-top: 5px solid #ef4444; }
-    .einkauf { border-top: 5px solid #0891b2; } /* Neue Akzentfarbe für Einkauf */
+    .einkauf { border-top: 5px solid #0891b2; }
+    .bilanz { border-top: 5px solid #10b981; } /* Smaragdgrün für Bilanz */
 
     footer {
       margin-top: auto;
@@ -110,37 +120,45 @@
     <a href="einkauf.html" class="menu-card einkauf">
       <span class="icon-box">📦</span>
       <span class="label">Einkauf</span>
-      <span class="sub-label">Wareneingang</span>
+      <span class="sub-label">Bestand +</span>
     </a>
 
     <a href="verkauf.html" class="menu-card verkauf">
       <span class="icon-box">🛒</span>
       <span class="label">Verkauf</span>
-      <span class="sub-label">Kasse & Marge</span>
+      <span class="sub-label">Bestand -</span>
     </a>
 
     <a href="buchen.html" class="menu-card buchen">
       <span class="icon-box">🔁</span>
       <span class="label">Buchen</span>
-      <span class="sub-label">Bestand ändern</span>
+      <span class="sub-label">Manuell</span>
     </a>
 
     <a href="suche.html" class="menu-card suche">
       <span class="icon-box">🔍</span>
       <span class="label">Suche</span>
-      <span class="sub-label">Bestand & Preis</span>
+      <span class="sub-label">Bestand/Preis</span>
     </a>
 
     <a href="platz.html" class="menu-card platz">
       <span class="icon-box">📍</span>
       <span class="label">Plätze</span>
-      <span class="sub-label">Inhalt prüfen</span>
+      <span class="sub-label">Inhalt</span>
     </a>
 
     <a href="preis_update.html" class="menu-card preise">
       <span class="icon-box">💰</span>
       <span class="label">Preise</span>
       <span class="sub-label">Stammdaten</span>
+    </a>
+
+    <a href="gewinn_verlust.html" class="menu-card bilanz full-width">
+      <span class="icon-box">📊</span>
+      <div style="display:flex; flex-direction:column; align-items:flex-start;">
+        <span class="label">Gewinn & Verlust</span>
+        <span class="sub-label">Finanzielle Auswertung & Margen</span>
+      </div>
     </a>
   </main>
 
