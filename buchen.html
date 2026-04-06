@@ -35,8 +35,8 @@
         <label>🔍 Zoom (Tippen für Fokus)</label>
         <input type="range" id="zoom-range" min="1" max="5" step="0.1" value="1">
       </div>
-      <input type="text" id="p" placeholder="📍 Platz scannen" readonly>
-      <input type="text" id="a" placeholder="🏷️ Artikel scannen" readonly>
+      <input type="text" id="p" placeholder="📍 Platz scannen oder tippen">
+      <input type="text" id="a" placeholder="🏷️ Artikel scannen oder tippen">
       <input type="number" id="m" value="1">
       <div class="btn-row">
         <button class="btn" style="background:var(--s)" onclick="run('Einlagerung')">EIN</button>
@@ -52,7 +52,6 @@
     let track = null;
     let isLocked = false;
 
-    // Fokus-Trigger verbessert: Nutzt applyConstraints sicher
     async function triggerAutofocus() {
       if (!track) return;
       try {
@@ -91,6 +90,8 @@
     sc.start({facingMode:"environment"}, config, (txt) => {
       if(isLocked) return;
       const pF = document.getElementById('p'), aF = document.getElementById('a');
+      
+      // Nur befüllen, wenn das Feld leer ist (verhindert Überschreiben manueller Eingaben)
       if(!pF.value) {
         pF.value = txt;
         if(window.navigator.vibrate) window.navigator.vibrate(50);
@@ -98,11 +99,9 @@
       } else if(!aF.value && pF.value !== txt) {
         aF.value = txt;
         if(window.navigator.vibrate) window.navigator.vibrate([50, 50, 50]);
-        sc.stop();
+        // Wir stoppen die Kamera hier nicht mehr automatisch, falls man korrigieren will
       }
     }).then(() => {
-      // FEHLERBEHEBUNG: Sicherer Zugriff auf den Track
-      // Manche Versionen nutzen getRunningTrack(), andere verlangen direkten Zugriff
       try {
         track = sc.getRunningTrack(); 
         const caps = track.getCapabilities();
@@ -112,9 +111,7 @@
           zI.min = caps.zoom.min; zI.max = caps.zoom.max; zI.step = caps.zoom.step;
           zI.oninput = () => track.applyConstraints({ advanced: [{ zoom: zI.value }] });
         }
-      } catch (e) {
-        console.error("Track-Zugriff fehlgeschlagen", e);
-      }
+      } catch (e) { console.error("Track-Zugriff fehlgeschlagen", e); }
     }).catch(err => console.error(err));
   </script>
 </body>
