@@ -13,15 +13,16 @@
     .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
     #reader { width: 100%; border-radius: 15px; overflow: hidden; aspect-ratio: 1; background: #000; margin-bottom: 10px; }
     
-    /* Kontrastfilter */
     #reader video { filter: contrast(1.5) brightness(1.1) grayscale(0.5); object-fit: cover; }
 
-    /* Fokus/Zoom Regler Styling */
     .controls { margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 10px; }
     .controls label { font-size: 12px; color: #64748b; font-weight: bold; display: block; margin-bottom: 5px; }
     input[type=range] { width: 100%; cursor: pointer; }
 
     input[type=text], input[type=number] { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+    /* Fokus-Hervorhebung */
+    input:focus { border-color: var(--a); outline: none; background: #eff6ff; }
+
     .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .btn { padding: 16px; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; }
     .back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: var(--a); font-weight: bold; }
@@ -29,7 +30,7 @@
   </style>
 </head>
 <body>
-  <div id="ov"><b>Lade...</b></div>
+  <div id="ov"><b>Verarbeite...</b></div>
   <header><img src="logo.png" style="height:35px;"></header>
   <div class="container">
     <div class="card">
@@ -37,13 +38,14 @@
       <div id="reader"></div>
 
       <div class="controls" id="camera-controls" style="display:none;">
-        <label>Zoom / Fokus Anpassung</label>
+        <label>Zoom / Fokus</label>
         <input type="range" id="zoom-range" min="1" max="5" step="0.1" value="1">
       </div>
 
-      <input type="text" id="p" placeholder="Platz scannen">
-      <input type="text" id="a" placeholder="Artikel scannen">
-      <input type="number" id="m" value="1">
+      <input type="text" id="p" placeholder="Platz scannen" readonly onclick="this.value=''">
+      <input type="text" id="a" placeholder="Artikel scannen" readonly onclick="this.value=''">
+      <input type="number" id="m" value="1" placeholder="Menge">
+      
       <div class="btn-row">
         <button class="btn" style="background:var(--s)" onclick="run('Einlagerung')">EIN</button>
         <button class="btn" style="background:var(--d)" onclick="run('Entnahme')">AUS</button>
@@ -56,10 +58,11 @@
     var api = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec";
     var sc = new Html5Qrcode("reader");
     var track = null;
+    var isScanning = false; // Sperre gegen Mehrfach-Erkennung
 
     async function run(t) {
       var art = document.getElementById('a').value, plz = document.getElementById('p').value;
-      if(!art || !plz) return alert("Scan fehlt!");
+      if(!art || !plz) return alert("Daten unvollständig!");
       document.getElementById('ov').style.display='flex';
       var nN = "";
       try {
@@ -72,40 +75,55 @@
           document.getElementById('ov').style.display='flex'; 
         }
         await fetch(api, {method:"POST", mode:"no-cors", body:JSON.stringify({daten:{typ:t, artikel:art, menge:document.getElementById('m').value, platz:plz, neuerName:nN}})});
-        alert("Erfolgreich!"); document.getElementById('a').value="";
+        alert("Erfolgreich gebucht!"); 
+        // Felder leeren und Scanner für nächsten Durchgang bereit machen
+        document.getElementById('a').value="";
+        document.getElementById('p').value="";
+        location.reload(); // Seite neu laden ist der sicherste Weg, um den Kamera-Status sauber zu resetten
       } catch(e) { alert("Fehler!"); }
       document.getElementById('ov').style.display='none';
     }
 
-    // Scanner Start
-    sc.start({facingMode:"environment"}, {fps:20, qrbox:250}, (txt) => {
-      if(!document.getElementById('p').value) document.getElementById('p').value = txt;
-      else document.getElementById('a').value = txt;
-      if(window.navigator.vibrate) window.navigator.vibrate(50);
-    }).then(() => {
-      // Zugriff auf den Video-Track für Zoom/Fokus
-      const videoElement = document.querySelector('#reader video');
-      track = sc.getRunningTrack();
-      const capabilities = track.getCapabilities();
-
-      // Prüfen, ob Zoom unterstützt wird (oft besser als Fokus-Kontrolle im Browser)
-      if (capabilities.zoom) {
-        document.getElementById('camera-controls').style.display = 'block';
-        const zoomInput = document.getElementById('zoom-range');
-        zoomInput.min = capabilities.zoom.min;
-        zoomInput.max = capabilities.zoom.max;
-        zoomInput.step = capabilities.zoom.step;
+    function startScanner() {
+      sc.start({facingMode:"environment"}, {fps:20, qrbox:250}, (txt) => {
+        if(isScanning) return; // Verhindert Verarbeitung während Pause
         
-        zoomInput.addEventListener('input', () => {
-          track.applyConstraints({ advanced: [{ zoom: zoomInput.value }] });
-        });
-      }
-      
-      // Falls manueller Fokus unterstützt wird (selten in Standard-Browsern)
-      if (capabilities.focusDistance) {
-        console.log("Manueller Fokus unterstützt");
-      }
-    }).catch(()=>{});
+        isScanning = true;
+        if(window.navigator.vibrate) window.navigator.vibrate(80);
+
+        let pField = document.getElementById('p');
+        let aField = document.getElementById('a');
+
+        if(!pField.value) {
+          pField.value = txt;
+          aField.focus(); // Wechselt visuell zum nächsten Tab/Feld
+        } else if(!aField.value) {
+          aField.value = txt;
+          // Wenn beide voll sind: Scanner stoppen um Doppelbuchung zu vermeiden
+          sc.stop().then(() => { console.log("Scanner gestoppt - bereit zum Buchen"); });
+        }
+
+        // Kurze Sperre, damit derselbe Barcode nicht innerhalb von Millisekunden 2x triggert
+        setTimeout(() => { isScanning = false; }, 1500);
+
+      }).then(() => {
+        track = sc.getRunningTrack();
+        const capabilities = track.getCapabilities();
+        if (capabilities.zoom) {
+          document.getElementById('camera-controls').style.display = 'block';
+          const zoomInput = document.getElementById('zoom-range');
+          zoomInput.min = capabilities.zoom.min;
+          zoomInput.max = capabilities.zoom.max;
+          zoomInput.step = capabilities.zoom.step;
+          zoomInput.addEventListener('input', () => {
+            track.applyConstraints({ advanced: [{ zoom: zoomInput.value }] });
+          });
+        }
+      }).catch(()=>{});
+    }
+
+    startScanner();
   </script>
 </body>
 </html>
+
