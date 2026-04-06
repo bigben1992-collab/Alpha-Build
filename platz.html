@@ -3,102 +3,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lager - Platzfilter</title>
+  <title>Lager - Multisuche</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     :root { --primary: #2563eb; --bg: #f8fafc; --text: #0f172a; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
-    .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-    h2 { margin-top: 0; font-size: 1.25rem; text-align: center; color: var(--primary); }
+    body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
+    .card { background: white; max-width: 450px; margin: 0 auto; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    h2 { font-size: 1.2rem; text-align: center; color: var(--primary); margin-bottom: 15px; }
     
-    #reader { width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 20px; border: 2px solid #e2e8f0; }
+    #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 15px; border: 1px solid #e2e8f0; }
     
-    .input-group { margin-bottom: 20px; }
-    label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 5px; color: #64748b; }
-    input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 1rem; transition: border-color 0.2s; }
-    input:focus { outline: none; border-color: var(--primary); }
+    input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 1rem; margin-bottom: 15px; }
+    input:focus { border-color: var(--primary); outline: none; }
 
-    .result-area { min-height: 100px; border-top: 2px solid #f1f5f9; pt: 20px; }
-    .info-box { background: #f1f5f9; padding: 15px; border-radius: 10px; margin-top: 15px; border-left: 4px solid var(--primary); animation: fadeIn 0.3s ease; }
-    .info-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
-    .info-value { font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; display: block; }
+    .results-container { display: flex; flex-direction: column; gap: 10px; }
+    .item-card { 
+      background: #ffffff; 
+      padding: 15px; 
+      border-radius: 10px; 
+      border: 1px solid #e2e8f0;
+      border-left: 5px solid var(--primary);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .item-id { font-size: 0.75rem; color: #64748b; font-weight: bold; }
+    .item-name { font-size: 1rem; font-weight: 700; display: block; margin: 2px 0; }
+    .item-qty { font-size: 1.1rem; color: var(--primary); font-weight: 800; text-align: right; display: block; }
     
-    .status { text-align: center; font-size: 0.9rem; color: #94a3b8; margin-top: 10px; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .status { text-align: center; padding: 20px; color: #94a3b8; font-size: 0.9rem; }
+    .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; margin-right: 10px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>📍 Platz-Suche</h2>
-  
+  <h2>📍 Platz-Belegung</h2>
   <div id="reader"></div>
+  <input type="text" id="platzId" placeholder="Platz scannen oder eingeben..." oninput="debounceSuche()">
 
-  <div class="input-group">
-    <label for="platzId">Platz-ID (Spalte A)</label>
-    <input type="text" id="platzId" placeholder="Scannen oder Tippen..." oninput="suchePlatz()">
-  </div>
-
-  <div id="result" class="result-area">
-    <div class="status" id="statusText">Warte auf Eingabe...</div>
+  <div id="results" class="results-container">
+    <div class="status">Warte auf Eingabe...</div>
   </div>
 </div>
 
 <script>
-  // DEINE URL HIER EINTRAGEN
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
-  
-  const scanner = new Html5Qrcode("reader");
-  const resultDiv = document.getElementById("result");
-  const statusText = document.getElementById("statusText");
+  let timeout = null;
 
-  async function suchePlatz() {
-    const id = document.getElementById("platzId").value.trim();
-    
-    if (id.length < 1) {
-      resultDiv.innerHTML = '<div class="status">Warte auf Eingabe...</div>';
+  // Ladezeit-Optimierung: Suche erst nach 400ms Inaktivität auslösen
+  function debounceSuche() {
+    clearTimeout(timeout);
+    timeout = setTimeout(sucheAlleArtikel, 400);
+  }
+
+  async function sucheAlleArtikel() {
+    const searchVal = document.getElementById("platzId").value.trim().toLowerCase();
+    const resDiv = document.getElementById("results");
+
+    if (searchVal.length < 1) {
+      resDiv.innerHTML = '<div class="status">Warte auf Eingabe...</div>';
       return;
     }
 
-    statusText.innerText = "Suche läuft...";
+    resDiv.innerHTML = '<div class="status"><div class="loader"></div>Suche läuft...</div>';
 
     try {
-      // Nutzt aktion=pruefung aus deinem Backend
-      const response = await fetch(`${WEB_APP_URL}?aktion=pruefung&platzId=${encodeURIComponent(id)}`);
+      /** * WICHTIG: Da getPlz im Backend nur 1 Ergebnis liefert, nutzen wir getLog.
+       * Wir ziehen uns das Log und berechnen den aktuellen Bestand aller Artikel für diesen Platz live.
+       */
+      const response = await fetch(`${WEB_APP_URL}?aktion=getLog`);
       const data = await response.json();
 
-      if (data.res) {
-        // Spalte B = data.res.artikel, Spalte C = data.res.name
-        resultDiv.innerHTML = `
-          <div class="info-box">
-            <span class="info-label">Artikel-ID (Spalte B)</span>
-            <span class="info-value">${data.res.artikel}</span>
-            
-            <span class="info-label">Bezeichnung (Spalte C)</span>
-            <span class="info-value">${data.res.name}</span>
-            
-            <span class="info-label">Bestand</span>
-            <span class="info-value">${data.res.menge}</span>
-          </div>
-        `;
-      } else {
-        resultDiv.innerHTML = '<div class="status" style="color:#ef4444;">❌ Platz nicht gefunden oder leer.</div>';
+      if (!data.log) throw new Error("Kein Log vorhanden");
+
+      const platzBestand = {};
+
+      // Wir gehen das gesamte Log durch (Spalte 5 = Platz)
+      data.log.slice(1).forEach(row => {
+        const rowPlatz = String(row[5]).trim().toLowerCase();
+        if (rowPlatz === searchVal) {
+          const artId = row[2];
+          const name = row[3];
+          const menge = parseFloat(String(row[4]).replace(',', '.')) || 0;
+          const typ = row[1];
+
+          if (!platzBestand[artId]) {
+            platzBestand[artId] = { name: name, menge: 0 };
+          }
+
+          // Saldo berechnen: Entnahmen abziehen, Einlagerungen addieren
+          if (typ === "Entnahme") {
+            platzBestand[artId].menge -= menge;
+          } else {
+            platzBestand[artId].menge += menge;
+          }
+        }
+      });
+
+      // HTML generieren für alle Artikel mit Bestand > 0
+      let html = "";
+      let trefferCount = 0;
+
+      for (const id in platzBestand) {
+        if (platzBestand[id].menge > 0) {
+          trefferCount++;
+          html += `
+            <div class="item-card">
+              <span class="item-id">ID: ${id}</span>
+              <span class="item-name">${platzBestand[id].name}</span>
+              <span class="item-qty">${platzBestand[id].menge.toLocaleString('de-DE')} Stk.</span>
+            </div>
+          `;
+        }
       }
+
+      resDiv.innerHTML = trefferCount > 0 ? html : '<div class="status">❌ Keine Artikel an diesem Platz gefunden.</div>';
+
     } catch (err) {
-      resultDiv.innerHTML = '<div class="status" style="color:#ef4444;">⚠️ Fehler beim Laden der Daten.</div>';
+      resDiv.innerHTML = '<div class="status" style="color:#ef4444;">⚠️ Fehler beim Abruf. Prüfe Internetverbindung.</div>';
     }
   }
 
-  // Scanner starten
-  scanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    (decodedText) => {
-      document.getElementById("platzId").value = decodedText;
-      suchePlatz();
-    }
-  ).catch(err => {
-    console.warn("Scanner konnte nicht gestartet werden (Kamera-Berechtigung?).");
+  // QR-Scanner Initialisierung
+  const scanner = new Html5Qrcode("reader");
+  scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+    document.getElementById("platzId").value = txt;
+    sucheAlleArtikel();
   });
 </script>
 
