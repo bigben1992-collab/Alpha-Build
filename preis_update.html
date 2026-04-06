@@ -6,34 +6,94 @@
   <title>Preis-Update | Lager Pro</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    /* Farben und Basis-Setup der "Buchen"-Seite übernommen */
-    :root { --p: #0f172a; --a: #f59e0b; --bg: #f1f5f9; --blue: #2563eb; }
+    /* Design-System der Buchen-Seite übernommen */
+    :root { --p: #0f172a; --a: #f59e0b; --blue: #2563eb; --bg: #f1f5f9; }
+    
     body { font-family: sans-serif; background: var(--bg); margin: 0; }
     
-    /* Header exakt wie in der ersten HTML */
-    header { background: white; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    
+    /* Header exakt wie in der Vorlage */
+    header { 
+      background: white; 
+      height: 60px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+    }
+
     .container { max-width: 450px; margin: 0 auto; padding: 15px; }
-    
-    /* Card-Stil angepasst an die erste HTML */
-    .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-    
-    #reader { width: 100%; border-radius: 15px; overflow: hidden; aspect-ratio: 1; background: #000; margin-bottom: 15px; }
-    
-    input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-    
-    label { font-size: 11px; font-weight: bold; color: #64748b; margin-left: 5px; text-transform: uppercase; }
-    
-    .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; background: var(--a); color: white; font-weight: bold; cursor: pointer; font-size: 1rem; }
-    
-    .back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: var(--blue); font-weight: bold; }
-    
-    #ov { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 10; flex-direction: column; align-items: center; justify-content: center; }
+
+    .card { 
+      background: white; 
+      padding: 20px; 
+      border-radius: 20px; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+    }
+
+    /* Kamera-Container identisch zur funktionierenden Version */
+    #reader { 
+      width: 100%; 
+      border-radius: 15px; 
+      overflow: hidden; 
+      aspect-ratio: 1; 
+      background: #000; 
+      margin-bottom: 15px; 
+    }
+
+    input { 
+      width: 100%; 
+      padding: 12px; 
+      margin: 5px 0 15px 0; 
+      border: 1.5px solid #e2e8f0; 
+      border-radius: 10px; 
+      font-size: 16px; 
+      box-sizing: border-box;
+    }
+
+    label { 
+      font-size: 11px; 
+      font-weight: bold; 
+      color: #64748b; 
+      margin-left: 5px;
+    }
+
+    .btn { 
+      width: 100%; 
+      padding: 16px; 
+      border: none; 
+      border-radius: 12px; 
+      background: var(--a); 
+      color: white; 
+      font-weight: bold; 
+      cursor: pointer; 
+      font-size: 1rem; 
+    }
+
+    .back { 
+      display: block; 
+      text-align: center; 
+      margin-top: 20px; 
+      text-decoration: none; 
+      color: var(--blue); 
+      font-weight: bold; 
+    }
+
+    /* Overlay für Ladezustand */
+    #ov { 
+      display: none; 
+      position: fixed; 
+      inset: 0; 
+      background: rgba(255,255,255,0.8); 
+      z-index: 10; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+    }
   </style>
 </head>
 <body>
   <div id="ov"><b>Speichert...</b></div>
-
+  
   <header><img src="logo.png" style="height:35px;"></header>
 
   <div class="container">
@@ -42,10 +102,56 @@
       
       <div id="reader"></div>
       
-      <label>Artikel scannen</label>
+      <label>ARTIKEL SCANNEN</label>
       <input type="text" id="artId" placeholder="EAN / ID...">
       
-      <label>Neuer Preis (€)</label>
+      <label>NEUER PREIS (€)</label>
       <input type="number" id="preis" step="0.01" placeholder="0.00">
       
       <button class="btn" onclick="save()">PREIS AKTUALISIEREN</button>
+    </div>
+    <a href="index.html" class="back">← Hauptmenü</a>
+  </div>
+
+  <script>
+    const api = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec";
+
+    async function save() {
+      const art = document.getElementById('artId').value.trim();
+      const pr = document.getElementById('preis').value;
+      if(!art || !pr) return alert("Bitte Artikel scannen und Preis eingeben.");
+
+      document.getElementById('ov').style.display='flex';
+      try {
+        // POST-Request angepasst an Google Apps Script Logik
+        await fetch(api, {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify({
+            daten: { typ: "Preis-Update", artikel: art, preis: pr, menge: 0, platz: "Büro" }
+          })
+        });
+        alert("Erfolgreich!");
+        document.getElementById('preis').value = "";
+        document.getElementById('artId').value = "";
+      } catch(e) { 
+        alert("Fehler!"); 
+      }
+      document.getElementById('ov').style.display='none';
+    }
+
+    // Kamera-Initialisierung exakt wie in der funktionierenden "Buchen"-Datei
+    let sc = new Html5Qrcode("reader");
+    sc.start(
+      { facingMode: "environment" }, 
+      { fps: 20, qrbox: 250 }, 
+      (txt) => {
+        document.getElementById('artId').value = txt;
+        if(window.navigator.vibrate) window.navigator.vibrate(50);
+      }
+    ).catch(err => {
+      console.error("Kamera-Fehler:", err);
+    });
+  </script>
+</body>
+</html>
