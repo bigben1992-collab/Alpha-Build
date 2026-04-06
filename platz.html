@@ -2,47 +2,143 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Platz Info</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    :root { --p: #0f172a; --a: #2563eb; --bg: #f1f5f9; }
-    body { font-family: sans-serif; background: var(--bg); margin: 0; }
+    :root { --p: #0f172a; --a: #2563eb; --bg: #f1f5f9; --accent: #8b5cf6; }
+    body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; }
     header { background: white; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .container { max-width: 450px; margin: 0 auto; padding: 15px; }
     .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-    #reader { width: 100%; border-radius: 15px; overflow: hidden; aspect-ratio: 1; background: #000; margin-bottom: 15px; }
-    input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; }
-    .res { background: #f8fafc; padding: 15px; border-radius: 12px; border-left: 4px solid var(--a); margin-top: 10px; }
+    h3 { margin-top: 0; color: var(--p); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    #reader { width: 100%; border-radius: 15px; overflow: hidden; background: #000; margin-bottom: 15px; }
+    input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+    
+    .res-container { margin-top: 10px; }
+    .platz-header { font-weight: bold; color: var(--accent); margin-bottom: 10px; font-size: 1.1rem; display: none; }
+    
+    .item-row { 
+      background: #f8fafc; 
+      padding: 12px; 
+      border-radius: 10px; 
+      border-left: 4px solid var(--accent); 
+      margin-bottom: 8px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+    }
+    .item-name { font-weight: bold; color: var(--p); font-size: 0.95rem; }
+    .item-id { font-size: 0.75rem; color: #64748b; }
+    .item-qty { background: var(--accent); color: white; padding: 4px 10px; border-radius: 8px; font-weight: bold; }
+    
+    .status { text-align: center; color: #64748b; font-size: 0.9rem; margin-top: 10px; }
     .back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: var(--a); font-weight: bold; }
   </style>
 </head>
 <body>
-  <header><img src="logo.png" style="height:35px;"></header>
-  <div class="container">
-    <div class="card">
-      <h3>📍 Platz-Info</h3>
-      <div id="reader"></div>
-      <input type="text" id="pi" placeholder="Platz scannen..." onchange="check()">
-      <div id="out" class="res">Warte auf Scan...</div>
+
+<header><img src="logo.png" style="height:35px;"></header>
+
+<div class="container">
+  <div class="card">
+    <h3>📍 Platz-Inhalt prüfen</h3>
+    <div id="reader"></div>
+    
+    <label style="font-size: 0.8rem; font-weight: bold; color: #64748b;">Platz-ID</label>
+    <input type="text" id="pi" placeholder="Platz scannen oder tippen..." oninput="check()">
+    
+    <div id="platzTitle" class="platz-header">Inhalt von: <span id="currentPlatz">-</span></div>
+    
+    <div id="out" class="res-container">
+      <div class="status">Bereit zum Scannen...</div>
     </div>
-    <a href="index.html" class="back">← Hauptmenü</a>
   </div>
-  <script>
-    var api = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
-    var sc = new Html5Qrcode("reader");
-    async function check() {
-      var p = document.getElementById('pi').value;
-      try {
-        var r = await fetch(api+"?aktion=pruefung&platzId="+p);
-        var d = await r.json();
-        document.getElementById('out').innerHTML = d.res ? `<b>${d.res.name}</b><br>Bestand: ${d.res.menge}` : "Leer.";
-      } catch(e) { document.getElementById('out').innerText = "Fehler."; }
+  
+  <a href="index.html" class="back">← Hauptmenü</a>
+</div>
+
+<script>
+  // WICHTIG: Nutze hier deine Web-App URL
+  const api = "https://script.google.com/macros/s/AKfycbxVzhqyg5a8pPQaanfcDEL-WqFRmBVMUP8eMBlwPxZ1aRFK-wSyhwok6R_uQ_PO4mc_/exec";
+  const sc = new Html5Qrcode("reader");
+
+  // Wir laden die Log-Daten einmalig oder bei Bedarf, um alle Artikel zu finden
+  async function check() {
+    const platzId = document.getElementById('pi').value.trim();
+    if (platzId.length < 1) return;
+
+    const out = document.getElementById('out');
+    out.innerHTML = '<div class="status">Suche läuft...</div>';
+
+    try {
+      // Wir nutzen getLog, um die komplette Liste zu erhalten (funktioniert mit deinem neuen Backend)
+      const r = await fetch(api + "?aktion=getLog");
+      const data = await r.json();
+      
+      // Das Backend sendet {log: [...], stamm: [...]}. 
+      // Wir berechnen den aktuellen Bestand pro Platz basierend auf allen Buchungen.
+      const bestandAmPlatz = {};
+
+      // Wir gehen durch das Log (Header überspringen)
+      // Log Struktur: [zeit, typ, artId, name, menge, platz, preis]
+      data.log.slice(1).forEach(entry => {
+        const typ = entry[1];
+        const artId = entry[2];
+        const name = entry[3];
+        const menge = parseFloat(entry[4]) || 0;
+        const pId = entry[5].toString().trim();
+
+        if (pId.toLowerCase() === platzId.toLowerCase()) {
+          const delta = (typ === "Entnahme") ? -menge : menge;
+          
+          if (!bestandAmPlatz[artId]) {
+            bestandAmPlatz[artId] = { name: name, menge: 0 };
+          }
+          bestandAmPlatz[artId].menge += delta;
+        }
+      });
+
+      // Anzeige aufbauen
+      let html = "";
+      let hatInhalt = false;
+
+      document.getElementById('currentPlatz').innerText = platzId;
+      document.getElementById('platzTitle').style.display = "block";
+
+      for (let id in bestandAmPlatz) {
+        const item = bestandAmPlatz[id];
+        // Nur anzeigen, wenn Bestand > 0
+        if (item.menge > 0) {
+          hatInhalt = true;
+          html += `
+            <div class="item-row">
+              <div style="display:flex; flex-direction:column;">
+                <span class="item-name">${item.name}</span>
+                <span class="item-id">ID: ${id}</span>
+              </div>
+              <span class="item-qty">${item.menge}</span>
+            </div>
+          `;
+        }
+      }
+
+      out.innerHTML = hatInhalt ? html : '<div class="status">Dieser Platz ist aktuell leer.</div>';
+
+    } catch(e) { 
+      out.innerHTML = '<div class="status" style="color:red;">Fehler beim Laden der Daten.</div>'; 
     }
-    sc.start({facingMode:"environment"}, {fps:20, qrbox:250}, (txt) => {
-      document.getElementById('pi').value = txt; check();
-      if(window.navigator.vibrate) window.navigator.vibrate(50);
-    }).catch(()=>{});
-  </script>
+  }
+
+  // Scanner Start
+  sc.start({facingMode:"environment"}, {fps:15, qrbox:250}, (txt) => {
+    document.getElementById('pi').value = txt; 
+    check();
+    if(window.navigator.vibrate) window.navigator.vibrate(50);
+  }).catch(()=>{
+    document.getElementById('out').innerText = "Kamera nicht verfügbar.";
+  });
+</script>
+
 </body>
 </html>
