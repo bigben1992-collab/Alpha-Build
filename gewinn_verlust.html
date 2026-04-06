@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gewinn & Verlust</title>
+  <style>
+    :root { --primary: #2563eb; --accent: #22c55e; --bg: #f1f5f9; --p: #0f172a; }
+    body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; }
+    header { background: white; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .container { max-width: 500px; margin: 0 auto; padding: 15px; }
+    .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
+    h2 { margin-top: 0; color: var(--p); font-size: 1.2rem; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .stat-box { padding: 15px; border-radius: 12px; text-align: center; color: white; }
+    .stat-sales { background: var(--primary); }
+    .stat-profit { background: var(--accent); }
+    .stat-val { font-size: 1.2rem; font-weight: bold; display: block; }
+    .stat-label { font-size: 0.75rem; opacity: 0.9; }
+
+    .list-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; align-items: center; }
+    .list-item:last-child { border: none; }
+    .item-info { display: flex; flex-direction: column; }
+    .item-name { font-weight: bold; color: var(--p); }
+    .item-meta { font-size: 0.75rem; color: #64748b; }
+    .item-profit { font-weight: bold; color: var(--accent); text-align: right; }
+    
+    .loader { text-align: center; padding: 20px; color: #64748b; font-style: italic; }
+    .back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: var(--primary); font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<header><img src="logo.png" style="height:35px;"></header>
+
+<div class="container">
+  <div class="card">
+    <h2>📊 Profit & Bilanz</h2>
+    
+    <div class="stats-grid">
+      <div class="stat-box stat-sales">
+        <span class="stat-val" id="totalUmsatz">0.00 €</span>
+        <span class="stat-label">Umsatz (Entnahme)</span>
+      </div>
+      <div class="stat-box stat-profit">
+        <span class="stat-val" id="totalProfit">0.00 €</span>
+        <span class="stat-label">Netto-Gewinn</span>
+      </div>
+    </div>
+    
+    <div id="statusInfo" class="loader">Lade Daten...</div>
+  </div>
+
+  <div class="card">
+    <h3>Verkaufs-Historie (Marge)</h3>
+    <div id="logListe"></div>
+  </div>
+
+  <a href="index.html" class="back">← Hauptmenü</a>
+</div>
+
+<script>
+  // WICHTIG: Setze hier deine neue Web-App URL ein
+  const scriptUrl = "DEINE_NEUE_URL_HIER";
+
+  async function loadData() {
+    try {
+      const res = await fetch(`${scriptUrl}?aktion=getLog`);
+      const data = await res.json();
+      renderStats(data.log, data.stamm);
+    } catch (e) {
+      document.getElementById('statusInfo').innerText = "Fehler beim Laden!";
+    }
+  }
+
+  function renderStats(logs, stammdaten) {
+    let totalUmsatz = 0;
+    let totalGewinn = 0;
+    let html = "";
+
+    // Stammdaten Map für schnellen Zugriff auf EKs
+    const ekMap = {};
+    stammdaten.forEach(row => {
+      let val = row[2].replace(/[^-0-9,.]/g, '').replace(',', '.');
+      ekMap[row[0]] = parseFloat(val) || 0;
+    });
+
+    // Logs von unten nach oben (neueste zuerst)
+    for (let i = logs.length - 1; i >= 1; i--) {
+      const [zeit, typ, artId, name, menge, platz, preis] = logs[i];
+      
+      if (typ === "Entnahme") {
+        const m = parseFloat(menge) || 0;
+        const vk = parseFloat(preis) || 0;
+        const ek = ekMap[artId] || 0;
+        
+        const umsatz = m * vk;
+        const gewinn = (vk - ek) * m;
+        
+        totalUmsatz += umsatz;
+        totalProfit += gewinn; // Variable korrigiert unten
+
+        html += `
+          <div class="list-item">
+            <div class="item-info">
+              <span class="item-name">${name}</span>
+              <span class="item-meta">${zeit} | ${m} Stk.</span>
+            </div>
+            <div class="item-profit">
+              +${gewinn.toFixed(2)} €<br>
+              <span style="font-size:0.7rem; color:#64748b; font-weight:normal;">VK: ${vk.toFixed(2)}€</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    document.getElementById('totalUmsatz').innerText = totalUmsatz.toFixed(2) + " €";
+    document.getElementById('totalProfit').innerText = totalProfit.toFixed(2) + " €";
+    document.getElementById('logListe').innerHTML = html || "<p style='text-align:center'>Keine Verkäufe gefunden.</p>";
+    document.getElementById('statusInfo').style.display = "none";
+  }
+
+  let totalProfit = 0; // Hilfsvariable
+  loadData();
+</script>
+
+</body>
+</html>
