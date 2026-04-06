@@ -6,17 +6,17 @@
   <title>Super Supreme System | Dashboard</title>
   <style>
     :root {
-      --bg: #f0f2f5;
+      --bg: #f1f5f9; /* Angepasst an Buchen-Seite */
       --card-bg: #ffffff;
       --primary: #2563eb;
-      --text: #1e293b;
+      --text: #0f172a;
       --text-light: #64748b;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: sans-serif;
       background-color: var(--bg);
       color: var(--text);
       margin: 0;
@@ -27,23 +27,17 @@
       align-items: center;
     }
 
+    /* Header exakt wie in der Buchen-Seite */
     header {
       width: 100%;
       background: white;
-      padding: 25px 0;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
       margin-bottom: 20px;
     }
-
-    .logo {
-      font-weight: 900;
-      font-size: 1.6rem;
-      text-transform: uppercase;
-      letter-spacing: -0.5px;
-    }
-
-    .logo span { color: var(--primary); }
 
     .container {
       width: 100%;
@@ -64,22 +58,19 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
       transition: all 0.2s ease;
       border: 1px solid rgba(0,0,0,0.05);
     }
 
-    /* Klick-Effekt */
     .menu-card:active {
       transform: scale(0.95);
       background-color: #f8fafc;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
     .icon-box {
-      font-size: 2.5rem;
+      font-size: 2.2rem;
       margin-bottom: 12px;
-      display: block;
     }
 
     .label {
@@ -94,9 +85,9 @@
       font-weight: 400;
     }
 
-    /* Akzentfarben für die Karten */
-    .buchen { border-top: 5px solid #3b82f6; }
-    .suche { border-top: 5px solid #10b981; }
+    /* Akzentfarben */
+    .buchen { border-top: 5px solid #2563eb; }
+    .suche { border-top: 5px solid #22c55e; }
     .platz { border-top: 5px solid #8b5cf6; }
     .preise { border-top: 5px solid #f59e0b; }
 
@@ -107,84 +98,11 @@
       font-size: 0.8rem;
     }
   </style>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Super Supreme System | Dashboard</title>
-  <style>
-    :root {
-      --p: #1e293b;
-      --a: #3b82f6;
-      --bg: #f8fafc;
-      --accent-price: #f59e0b;
-      --accent-search: #10b981;
-    }
-
-    body {
-      font-family: -apple-system, system-ui, sans-serif;
-      background: var(--bg);
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      color: var(--p);
-    }
-
-    header {
-      width: 100%;
-      background: white;
-      padding: 20px 0;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      margin-bottom: 30px;
-    }
-
-    .logo {
-      font-weight: 800;
-      font-size: 1.5rem;
-      letter-spacing: -1px;
-    }
-
-    .logo span { color: var(--a); }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      width: 90%;
-      max-width: 400px;
-    }
-
-    .menu-card {
-      background: white;
-      text-decoration: none;
-      color: var(--p);
-      padding: 25px 15px;
-      border-radius: 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
-      transition: transform 0.2s;
-      border: 1px solid #f1f5f9;
-    }
-
-    .menu-card:active { transform: scale(0.95); }
-
-    .icon { font-size: 2rem; margin-bottom: 10px; }
-    
-    .title { font-weight: 700; font-size: 0.9rem; }
-    .desc { font-size: 0.7rem; color: #64748b; margin-top: 5px; }
-
-    /* Farben für die Icons/Karten */
-    .c-buchen { border-bottom: 4px solid var(--a); }
-  </style>
 </head>
 <body>
 
   <header>
-    <div class="logo">Super Supreme<span>SYstem</span></div>
+    <img src="logo.png" style="height:35px;" alt="Logo">
   </header>
 
   <main class="container">
@@ -193,9 +111,6 @@
       <span class="label">Buchen</span>
       <span class="sub-label">Ein- & Entnahme</span>
     </a>
-  <header>
-    <div class="logo">Super Supreme <span>System</span></div>
-  </header>
 
     <a href="suche.html" class="menu-card suche">
       <span class="icon-box">🔍</span>
@@ -219,14 +134,6 @@
   <footer>
     Super Supreme System &bull; 2026
   </footer>
-  <main class="grid">
-    <a href="#" class="menu-card c-buchen">
-      <div class="icon">📦</div>
-      <div class="title">Buchen</div>
-      <div class="desc">Bestände verwalten</div>
-    </a>
-    
-    </main>
 
 </body>
 </html>
