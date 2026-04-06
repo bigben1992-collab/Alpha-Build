@@ -12,8 +12,11 @@
     .container { max-width: 450px; margin: 0 auto; padding: 15px; }
     .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
     h3 { margin-top: 0; color: var(--p); border-bottom: 2px solid #eee; padding-bottom: 10px; }
-    #reader { width: 100%; border-radius: 15px; overflow: hidden; background: #000; margin-bottom: 15px; }
+    #reader { width: 100%; border-radius: 15px; overflow: hidden; background: #000; margin-bottom: 15px; min-height: 200px; }
     input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+    
+    .res-container { margin-top: 10px; }
+    .platz-header { font-weight: bold; color: var(--accent); margin-bottom: 10px; font-size: 1.1rem; display: none; }
     
     .item-row { 
       background: #f8fafc; 
@@ -35,17 +38,20 @@
 </head>
 <body>
 
-<header><img src="logo.png" style="height:35px;"></header>
+<header><img src="logo.png" style="height:35px;" onerror="this.style.display='none'"></header>
 
 <div class="container">
   <div class="card">
-    <h3>📍 Platz-Inhalt</h3>
+    <h3>📍 Platz-Inhalt prüfen</h3>
     <div id="reader"></div>
     
+    <label style="font-size: 0.8rem; font-weight: bold; color: #64748b;">Platz-ID</label>
     <input type="text" id="pi" placeholder="Platz scannen oder tippen..." oninput="check()">
     
-    <div id="out">
-      <div class="status">Warte auf Scan/Eingabe...</div>
+    <div id="platzTitle" class="platz-header">Inhalt von: <span id="currentPlatz">-</span></div>
+    
+    <div id="out" class="res-container">
+      <div class="status">Bereit zum Scannen...</div>
     </div>
   </div>
   
@@ -53,71 +59,100 @@
 </div>
 
 <script>
-  // WICHTIG: Ersetze dies durch deine aktuelle Web-App URL
+  // URL DEINER WEB APP
   const api = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
   const sc = new Html5Qrcode("reader");
 
   async function check() {
-    const platzId = document.getElementById('pi').value.trim().toLowerCase();
-    if (platzId.length < 1) return;
-
+    const platzId = document.getElementById('pi').value.trim();
     const out = document.getElementById('out');
-    
-    try {
-      // Wir nutzen getLog, um die Datenstruktur zu erhalten
-      const r = await fetch(api + "?aktion=getLog");
-      const data = await r.json();
-      
-      /** * Da getLog im Backend aktuell log und stamm liefert, 
-       * aber wir die ECHTEN Bestände aus dem Sheet "Bestand" brauchen,
-       * nutzen wir hier einen Workaround: Wir summieren die Bestände
-       * aus dem Log, da wir das Backend nicht ändern dürfen.
-       */
-      const inventar = {};
+    const title = document.getElementById('platzTitle');
 
+    if (platzId.length < 1) {
+      out.innerHTML = '<div class="status">Bereit zum Scannen...</div>';
+      title.style.display = "none";
+      return;
+    }
+
+    out.innerHTML = '<div class="status">Bestand wird berechnet...</div>';
+
+    try {
+      // 1. Daten vom Backend holen
+      const response = await fetch(api + "?aktion=getLog");
+      const data = await response.json();
+      
+      if (!data.log || data.log.length < 2) {
+        out.innerHTML = '<div class="status">Keine Log-Daten vorhanden.</div>';
+        return;
+      }
+
+      // 2. Bestand aggregieren
+      const bestandAmPlatz = {};
+
+      // Log-Struktur laut deinem Code: [Zeit, Typ, ArtId, Name, Menge, Platz, Preis]
+      // Indexe: Typ=1, ArtId=2, Name=3, Menge=4, Platz=5
       data.log.slice(1).forEach(entry => {
         const typ = entry[1];
         const artId = entry[2];
         const name = entry[3];
         const menge = parseFloat(entry[4]) || 0;
-        const pId = entry[5].toString().trim().toLowerCase();
+        const pId = entry[5] ? entry[5].toString().trim() : "";
 
-        if (pId === platzId) {
-          if (!inventar[artId]) inventar[artId] = { name: name, menge: 0 };
-          // Bestand berechnen: Alles außer Entnahme ist positiv
-          const delta = (typ === "Entnahme") ? -menge : menge;
-          inventar[artId].menge += delta;
+        // Nur Einträge für den gesuchten Platz beachten
+        if (pId.toLowerCase() === platzId.toLowerCase()) {
+          if (!bestandAmPlatz[artId]) {
+            bestandAmPlatz[artId] = { name: name, menge: 0 };
+          }
+          
+          if (typ === "Einlagerung") {
+            bestandAmPlatz[artId].menge += menge;
+          } else if (typ === "Entnahme") {
+            bestandAmPlatz[artId].menge -= menge;
+          }
         }
       });
 
-      let html = `<h4>Platz: ${platzId.toUpperCase()}</h4>`;
-      let gefunden = false;
+      // 3. HTML generieren
+      let html = "";
+      let hatInhalt = false;
 
-      for (let id in inventar) {
-        if (inventar[id].menge !== 0) { // Zeige auch negative Fehlerbestände zur Kontrolle
-          gefunden = true;
+      document.getElementById('currentPlatz').innerText = platzId;
+      title.style.display = "block";
+
+      for (let id in bestandAmPlatz) {
+        const item = bestandAmPlatz[id];
+        // Nur anzeigen, wenn rechnerisch noch etwas da ist
+        if (item.menge > 0) {
+          hatInhalt = true;
           html += `
             <div class="item-row">
               <div style="display:flex; flex-direction:column;">
-                <span class="item-name">${inventar[id].name}</span>
+                <span class="item-name">${item.name}</span>
                 <span class="item-id">ID: ${id}</span>
               </div>
-              <span class="item-qty">${inventar[id].menge}</span>
-            </div>`;
+              <span class="item-qty">${item.menge}</span>
+            </div>
+          `;
         }
       }
 
-      out.innerHTML = gefunden ? html : '<div class="status">Platz ist leer oder existiert nicht.</div>';
+      out.innerHTML = hatInhalt ? html : '<div class="status">Dieser Platz ist aktuell leer (Bestand 0).</div>';
 
     } catch(e) { 
-      out.innerHTML = '<div class="status">Fehler beim Laden. URL korrekt?</div>'; 
+      console.error(e);
+      out.innerHTML = '<div class="status" style="color:red;">Fehler bei der Datenabfrage.</div>'; 
     }
   }
 
+  // Scanner Initialisierung
   sc.start({facingMode:"environment"}, {fps:15, qrbox:250}, (txt) => {
     document.getElementById('pi').value = txt; 
     check();
-  }).catch(()=>{});
+    if(window.navigator.vibrate) window.navigator.vibrate(50);
+  }).catch(err => {
+    console.error("Kamera-Fehler:", err);
+    document.getElementById('out').innerHTML = '<div class="status">Kamera nicht aktiv oder blockiert.</div>';
+  });
 </script>
 
 </body>
