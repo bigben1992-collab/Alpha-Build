@@ -2,165 +2,105 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Platz-Abfrage</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lager - Platzfilter</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    :root { --p: #0f172a; --a: #2563eb; --bg: #f8fafc; --accent: #8b5cf6; }
-    body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--p); }
-    header { background: white; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .container { max-width: 450px; margin: 0 auto; padding: 15px; }
-    .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    h3 { margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; }
-    #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; margin-bottom: 15px; min-height: 200px; }
+    :root { --primary: #2563eb; --bg: #f8fafc; --text: #0f172a; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+    .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    h2 { margin-top: 0; font-size: 1.25rem; text-align: center; color: var(--primary); }
     
-    label { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
-    input { width: 100%; padding: 14px; margin: 8px 0 15px 0; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-    input:focus { border-color: var(--a); outline: none; }
+    #reader { width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 20px; border: 2px solid #e2e8f0; }
     
-    .result-box { display: none; margin-top: 10px; border-top: 2px solid #f1f5f9; padding-top: 15px; }
-    .item-card { background: #f1f5f9; padding: 15px; border-radius: 12px; border-left: 5px solid var(--a); }
-    .item-name { font-weight: 700; font-size: 1.1rem; color: var(--a); display: block; margin-bottom: 5px; }
-    .item-meta { font-size: 0.85rem; color: #64748b; }
-    .qty-display { font-size: 1.8rem; font-weight: 800; color: var(--p); }
+    .input-group { margin-bottom: 20px; }
+    label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 5px; color: #64748b; }
+    input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 1rem; transition: border-color 0.2s; }
+    input:focus { outline: none; border-color: var(--primary); }
+
+    .result-area { min-height: 100px; border-top: 2px solid #f1f5f9; pt: 20px; }
+    .info-box { background: #f1f5f9; padding: 15px; border-radius: 10px; margin-top: 15px; border-left: 4px solid var(--primary); animation: fadeIn 0.3s ease; }
+    .info-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .info-value { font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; display: block; }
     
-    .nav-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; gap: 10px; }
-    button { background: var(--a); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; flex: 1; }
-    button:disabled { background: #cbd5e1; cursor: not-allowed; }
-    
-    .status { text-align: center; color: #94a3b8; font-size: 0.9rem; margin-top: 10px; padding: 10px; background: #fff; border-radius: 8px; }
-    .back { display: block; text-align: center; margin-top: 25px; text-decoration: none; color: var(--a); font-weight: 600; }
+    .status { text-align: center; font-size: 0.9rem; color: #94a3b8; margin-top: 10px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
 
-<header><strong>LAGER-SYSTEM</strong></header>
-
-<div class="container">
-  <div class="card">
-    <h3>📍 Platz-Inhalt prüfen</h3>
-    <div id="reader"></div>
-    
-    <label>Platz-ID</label>
-    <input type="text" id="pi" placeholder="Platz scannen oder eingeben..." oninput="checkPlatz(this.value)">
-    
-    <div id="out">
-      <div id="statusMsg" class="status">Bereit zum Scannen...</div>
-      
-      <div id="resultBox" class="result-box">
-        <div class="item-card">
-          <span id="resName" class="item-name">-</span>
-          <div id="resId" class="item-meta">ID: -</div>
-          <div style="display:flex; justify-content: space-between; align-items: flex-end;">
-            <span style="font-size: 0.8rem; color: #64748b;">Bestand an diesem Platz:</span>
-            <span id="resQty" class="qty-display">0</span>
-          </div>
-        </div>
-
-        <div class="nav-controls">
-          <button id="prevBtn" onclick="changeEntry(-1)">← Zurück</button>
-          <span id="pageInfo" style="font-weight:bold;">1 / 1</span>
-          <button id="nextBtn" onclick="changeEntry(1)">Weiter →</button>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="card">
+  <h2>📍 Platz-Suche</h2>
   
-  <a href="index.html" class="back">← Hauptmenü</a>
+  <div id="reader"></div>
+
+  <div class="input-group">
+    <label for="platzId">Platz-ID (Spalte A)</label>
+    <input type="text" id="platzId" placeholder="Scannen oder Tippen..." oninput="suchePlatz()">
+  </div>
+
+  <div id="result" class="result-area">
+    <div class="status" id="statusText">Warte auf Eingabe...</div>
+  </div>
 </div>
 
 <script>
-  const api = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
-  const sc = new Html5Qrcode("reader");
+  // DEINE URL HIER EINTRAGEN
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
+  
+  const scanner = new Html5Qrcode("reader");
+  const resultDiv = document.getElementById("result");
+  const statusText = document.getElementById("statusText");
 
-  let gefundeneArtikel = [];
-  let aktuellerIndex = 0;
-
-  async function checkPlatz(platzId) {
-    const statusMsg = document.getElementById('statusMsg');
-    const resultBox = document.getElementById('resultBox');
+  async function suchePlatz() {
+    const id = document.getElementById("platzId").value.trim();
     
-    if (!platzId || platzId.trim().length === 0) {
-      statusMsg.innerText = "Bereit zum Scannen...";
-      resultBox.style.display = "none";
+    if (id.length < 1) {
+      resultDiv.innerHTML = '<div class="status">Warte auf Eingabe...</div>';
       return;
     }
 
-    statusMsg.innerText = "Suche läuft...";
+    statusText.innerText = "Suche läuft...";
 
     try {
-      const r = await fetch(`${api}?aktion=getLog`);
-      const data = await r.json();
+      // Nutzt aktion=pruefung aus deinem Backend
+      const response = await fetch(`${WEB_APP_URL}?aktion=pruefung&platzId=${encodeURIComponent(id)}`);
+      const data = await response.json();
 
-      // Backend sendet {log: [...], stamm: [...]}. Wir nehmen das log.
-      const logRows = data.log || data.Log;
-      if (!logRows || logRows.length < 2) {
-        statusMsg.innerText = "Fehler: Keine Log-Daten empfangen.";
-        return;
-      }
-
-      const bestandMap = {};
-      const gesuchteId = platzId.trim().toLowerCase();
-
-      // Log-Struktur: [Zeit, Typ, ArtId, Name, Menge, Platz, Preis]
-      // Indexe: Typ=1, ArtId=2, Name=3, Menge=4, Platz=5
-      logRows.slice(1).forEach(row => {
-        if (!row[5]) return; // Kein Platz angegeben
-
-        const pIdInLog = String(row[5]).trim().toLowerCase();
-        
-        if (pIdInLog === gesuchteId) {
-          const artId = String(row[2]);
-          const name = row[3] || "Unbekannt";
-          const typ = row[1];
-          
-          // Menge säubern (Komma zu Punkt)
-          let mengeStr = String(row[4]).replace(',', '.');
-          const menge = parseFloat(mengeStr) || 0;
-
-          if (!bestandMap[artId]) {
-            bestandMap[artId] = { id: artId, name: name, menge: 0 };
-          }
-
-          if (typ === "Entnahme") {
-            bestandMap[artId].menge -= menge;
-          } else {
-            bestandMap[artId].menge += menge;
-          }
-        }
-      });
-
-      // Filtere Artikel, deren Bestand nach allen Buchungen > 0 ist
-      gefundeneArtikel = Object.values(bestandMap).filter(a => a.menge > 0.001);
-
-      if (gefundeneArtikel.length > 0) {
-        aktuellerIndex = 0;
-        statusMsg.style.display = "none";
-        resultBox.style.display = "block";
-        showEntry();
+      if (data.res) {
+        // Spalte B = data.res.artikel, Spalte C = data.res.name
+        resultDiv.innerHTML = `
+          <div class="info-box">
+            <span class="info-label">Artikel-ID (Spalte B)</span>
+            <span class="info-value">${data.res.artikel}</span>
+            
+            <span class="info-label">Bezeichnung (Spalte C)</span>
+            <span class="info-value">${data.res.name}</span>
+            
+            <span class="info-label">Bestand</span>
+            <span class="info-value">${data.res.menge}</span>
+          </div>
+        `;
       } else {
-        resultBox.style.display = "none";
-        statusMsg.style.display = "block";
-        statusMsg.innerText = "Dieser Platz ist aktuell leer (Saldo 0).";
+        resultDiv.innerHTML = '<div class="status" style="color:#ef4444;">❌ Platz nicht gefunden oder leer.</div>';
       }
-    } catch (e) {
-      statusMsg.innerText = "Fehler bei der Verbindung zum Sheet.";
-      console.error(e);
+    } catch (err) {
+      resultDiv.innerHTML = '<div class="status" style="color:#ef4444;">⚠️ Fehler beim Laden der Daten.</div>';
     }
   }
 
-  function showEntry() {
-    const item = gefundeneArtikel[aktuellerIndex];
-    document.getElementById('resName').innerText = item.name;
-    document.getElementById('resId').innerText = "Artikel-ID: " + item.id;
-    // Formatierung für Anzeige (Punkt zu Komma zurück für DE)
-    document.getElementById('resQty').innerText = item.menge.toString().replace('.', ',');
-    
-    document.getElementById('pageInfo').innerText = `${aktuellerIndex + 1} / ${gefundeneArtikel.length}`;
-    document.getElementById('prevBtn').disabled = (aktuellerIndex === 0);
-    document.getElementById('nextBtn').disabled = (aktuellerIndex === gefundeneArtikel.length - 1);
-  }
+  // Scanner starten
+  scanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      document.getElementById("platzId").value = decodedText;
+      suchePlatz();
+    }
+  ).catch(err => {
+    console.warn("Scanner konnte nicht gestartet werden (Kamera-Berechtigung?).");
+  });
+</script>
 
-  function changeEntry(delta) {
-    aktuellerIndex += delta;
-    show
+</body>
+</html>
