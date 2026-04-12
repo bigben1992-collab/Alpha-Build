@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Platz-Suche (Multi)</title>
+  <title>Platz-Suche (Bestandsliste)</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     :root { --p: #0f172a; --a: #2563eb; --bg: #f1f5f9; }
@@ -63,7 +63,8 @@
 </div>
 
 <script>
-  // URL deiner Google Apps Script API
+  // WICHTIG: Dein Google Script muss eine Aktion "getBestand" unterstützen, 
+  // die das gesamte Blatt "Bestand" als JSON zurückgibt.
   const api = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
   const sc = new Html5Qrcode("reader");
 
@@ -83,25 +84,27 @@
       return;
     }
 
-    msg.innerText = "Suche läuft...";
+    msg.innerText = "Suche Bestand...";
 
     try {
-      // Wir rufen die Haupt-Bestandsliste ab (aktion=getBestand)
+      // Wir holen uns das fertige Bestandsblatt
+      // Stelle sicher, dass im Google Script 'aktion=getBestand' existiert
       const response = await fetch(`${api}?aktion=getBestand`);
       const data = await response.json();
       
-      const liste = data.liste || data.Bestand;
-      if (!liste) throw new Error("Keine Daten erhalten");
+      const bestandData = data.bestand || data.Bestand;
+      if (!bestandData) throw new Error("Keine Bestandsdaten gefunden");
 
-      // Filtere alle Zeilen, bei denen Spalte E (Index 4) dem gesuchten Platz entspricht
-      // Wir gehen davon aus: Spalte B=ID(1), C=Name(2), D=Bestand(3), E=Platz(4)
-      alleTreffer = liste.slice(1).filter(row => {
-          const platzInTabelle = String(row[4] || "").trim().toLowerCase();
-          return platzInTabelle === pid;
+      // Filtern: Nur Zeilen, in denen Spalte A (Index 0) dem gesuchten Platz entspricht
+      // Wir überspringen die Header-Zeile mit slice(1)
+      alleTreffer = bestandData.slice(1).filter(row => {
+        const rowPlatz = String(row[0]).trim().toLowerCase();
+        const menge = parseFloat(String(row[3]).replace(',', '.')) || 0;
+        return rowPlatz === pid && menge > 0;
       }).map(row => ({
-          id: row[1],
-          name: row[2],
-          menge: row[3]
+        id: row[1],    // Spalte B
+        name: row[2],  // Spalte C
+        menge: row[3]  // Spalte D
       }));
 
       if (alleTreffer.length > 0) {
@@ -114,11 +117,11 @@
         resBox.style.display = "none";
         nav.style.display = "none";
         msg.style.display = "block";
-        msg.innerText = "❌ Keine Artikel auf diesem Platz gefunden.";
+        msg.innerText = "❌ Keine Artikel auf diesem Platz.";
       }
     } catch (e) {
-      msg.innerText = "⚠️ Fehler beim Laden der Daten.";
       console.error(e);
+      msg.innerText = "⚠️ Fehler beim Laden (Script prüfen!).";
     }
   }
 
