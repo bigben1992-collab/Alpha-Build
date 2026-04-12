@@ -63,6 +63,7 @@
 </div>
 
 <script>
+  // URL deiner Google Apps Script API
   const api = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
   const sc = new Html5Qrcode("reader");
 
@@ -82,33 +83,26 @@
       return;
     }
 
-    msg.innerText = "Lade alle Daten...";
+    msg.innerText = "Suche läuft...";
 
     try {
-      // WICHTIG: Wir nutzen getLog, um alle Bestände zu sehen, 
-      // da getPlz im Backend nach dem ersten Treffer stoppt.
-      const response = await fetch(`${api}?aktion=getLog`);
+      // Wir rufen die Haupt-Bestandsliste ab (aktion=getBestand)
+      const response = await fetch(`${api}?aktion=getBestand`);
       const data = await response.json();
       
-      const logData = data.log || data.Log;
-      if (!logData) throw new Error("Kein Log");
+      const liste = data.liste || data.Bestand;
+      if (!liste) throw new Error("Keine Daten erhalten");
 
-      // Wir berechnen den Bestand pro Artikel für diesen Platz
-      const bestandMap = {};
-      logData.slice(1).forEach(row => {
-        const rowPlatz = String(row[5]).trim().toLowerCase();
-        if (rowPlatz === pid) {
-          const artId = row[2];
-          if (!bestandMap[artId]) {
-            bestandMap[artId] = { id: artId, name: row[3], menge: 0 };
-          }
-          const menge = parseFloat(String(row[4]).replace(',', '.')) || 0;
-          bestandMap[artId].menge += (row[1] === "Entnahme" ? -menge : menge);
-        }
-      });
-
-      // Nur Artikel mit echtem Bestand > 0
-      alleTreffer = Object.values(bestandMap).filter(a => a.menge > 0);
+      // Filtere alle Zeilen, bei denen Spalte E (Index 4) dem gesuchten Platz entspricht
+      // Wir gehen davon aus: Spalte B=ID(1), C=Name(2), D=Bestand(3), E=Platz(4)
+      alleTreffer = liste.slice(1).filter(row => {
+          const platzInTabelle = String(row[4] || "").trim().toLowerCase();
+          return platzInTabelle === pid;
+      }).map(row => ({
+          id: row[1],
+          name: row[2],
+          menge: row[3]
+      }));
 
       if (alleTreffer.length > 0) {
         aktuellerIndex = 0;
@@ -120,10 +114,11 @@
         resBox.style.display = "none";
         nav.style.display = "none";
         msg.style.display = "block";
-        msg.innerText = "❌ Platz ist aktuell leer.";
+        msg.innerText = "❌ Keine Artikel auf diesem Platz gefunden.";
       }
     } catch (e) {
-      msg.innerText = "⚠️ Fehler beim Laden der Bestandsliste.";
+      msg.innerText = "⚠️ Fehler beim Laden der Daten.";
+      console.error(e);
     }
   }
 
