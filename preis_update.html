@@ -3,154 +3,160 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Preis-Update für Lager Pro. Artikel scannen und neuen Preis hinterlegen.">
   <title>Preis-Update | Lager Pro</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    /* Design-System der Buchen-Seite übernommen */
     :root { --p: #0f172a; --a: #f59e0b; --blue: #2563eb; --bg: #f1f5f9; }
-    
-    body { font-family: sans-serif; background: var(--bg); margin: 0; }
-    
-    /* Header exakt wie in der Vorlage */
-    header { 
-      background: white; 
-      height: 60px; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
-    }
-
-    .container { max-width: 450px; margin: 0 auto; padding: 15px; }
-
-    .card { 
-      background: white; 
-      padding: 20px; 
-      border-radius: 20px; 
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
-    }
-
-    /* Kamera-Container identisch zur funktionierenden Version */
-    #reader { 
-      width: 100%; 
-      border-radius: 15px; 
-      overflow: hidden; 
-      aspect-ratio: 1; 
-      background: #000; 
-      margin-bottom: 15px; 
-    }
-
-    input { 
-      width: 100%; 
-      padding: 12px; 
-      margin: 5px 0 15px 0; 
-      border: 1.5px solid #e2e8f0; 
-      border-radius: 10px; 
-      font-size: 16px; 
-      box-sizing: border-box;
-    }
-
-    label { 
-      font-size: 11px; 
-      font-weight: bold; 
-      color: #64748b; 
-      margin-left: 5px;
-    }
-
-    .btn { 
-      width: 100%; 
-      padding: 16px; 
-      border: none; 
-      border-radius: 12px; 
-      background: var(--a); 
-      color: white; 
-      font-weight: bold; 
-      cursor: pointer; 
-      font-size: 1rem; 
-    }
-
-    .back { 
-      display: block; 
-      text-align: center; 
-      margin-top: 20px; 
-      text-decoration: none; 
-      color: var(--blue); 
-      font-weight: bold; 
-    }
-
-    /* Overlay für Ladezustand */
-    #ov { 
-      display: none; 
-      position: fixed; 
-      inset: 0; 
-      background: rgba(255,255,255,0.8); 
-      z-index: 10; 
-      flex-direction: column; 
-      align-items: center; 
-      justify-content: center; 
-    }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: var(--bg); margin: 0; }
+    header { background: white; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .container { max-width: 450px; margin: 20px auto; padding: 15px; }
+    .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    #reader { width: 100%; border-radius: 15px; overflow: hidden; aspect-ratio: 1; background: #000; margin-bottom: 15px; }
+    @supports not (aspect-ratio: 1) { #reader { height: 320px; } }
+    input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+    label { font-size: 11px; font-weight: bold; color: #64748b; margin-left: 5px; display:block; margin-bottom:6px; }
+    .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; background: var(--a); color: white; font-weight: bold; cursor: pointer; font-size: 1rem; }
+    .back { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: var(--blue); font-weight: bold; }
+    #ov { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 10; flex-direction: column; align-items: center; justify-content: center; }
+    #ov b { font-size: 1.1rem; color: var(--p); }
+    .msg { margin-top: 10px; color: #065f46; font-weight: 600; }
   </style>
 </head>
 <body>
-  <div id="ov"><b>Speichert...</b></div>
-  
-  <header><img src="logo.png" style="height:35px;"></header>
+  <div id="ov" role="status" aria-live="polite"><b>Speichert...</b><div id="ovMsg" class="msg" aria-hidden="true"></div></div>
+
+  <header><img src="logo.png" alt="Lager Pro Logo" style="height:35px;"></header>
 
   <div class="container">
-    <div class="card">
+    <div class="card" role="region" aria-label="Preis hinterlegen">
       <h3 style="margin-top:0;">💰 Preis hinterlegen</h3>
-      
-      <div id="reader"></div>
-      
-      <label>ARTIKEL SCANNEN</label>
-      <input type="text" id="artId" placeholder="EAN / ID...">
-      
-      <label>NEUER PREIS (€)</label>
-      <input type="number" id="preis" step="0.01" placeholder="0.00">
-      
-      <button class="btn" onclick="save()">PREIS AKTUALISIEREN</button>
+
+      <div id="reader" aria-hidden="false"></div>
+
+      <label for="artId">ARTIKEL SCANNEN</label>
+      <input type="text" id="artId" name="artId" placeholder="EAN / ID..." autocomplete="off" required>
+
+      <label for="preis">NEUER PREIS €</label>
+      <input type="number" id="preis" name="preis" step="0.01" min="0" placeholder="0.00" required>
+
+      <button type="button" id="saveBtn" class="btn">PREIS AKTUALISIEREN</button>
     </div>
     <a href="index.html" class="back">← Hauptmenü</a>
   </div>
 
   <script>
     const api = "https://script.google.com/macros/s/AKfycbyhihhCCCOw2G1rgd-_s4Q0A5_IwtAgvY5RggvosAu_-it4v20YoB6s9BqemxtZaycl/exec";
+    const ov = document.getElementById('ov');
+    const ovMsg = document.getElementById('ovMsg');
+    const artInput = document.getElementById('artId');
+    const preisInput = document.getElementById('preis');
+    const saveBtn = document.getElementById('saveBtn');
 
-    async function save() {
-      const art = document.getElementById('artId').value.trim();
-      const pr = document.getElementById('preis').value;
-      if(!art || !pr) return alert("Bitte Artikel scannen und Preis eingeben.");
-
-      document.getElementById('ov').style.display='flex';
-      try {
-        // POST-Request angepasst an Google Apps Script Logik
-        await fetch(api, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify({
-            daten: { typ: "Preis-Update", artikel: art, preis: pr, menge: 0, platz: "Büro" }
-          })
-        });
-        alert("Erfolgreich!");
-        document.getElementById('preis').value = "";
-        document.getElementById('artId').value = "";
-      } catch(e) { 
-        alert("Fehler!"); 
-      }
-      document.getElementById('ov').style.display='none';
+    function showOverlay(text) {
+      ov.style.display = 'flex';
+      ovMsg.textContent = text || '';
+      ovMsg.setAttribute('aria-hidden', text ? 'false' : 'true');
+    }
+    function hideOverlay() {
+      ov.style.display = 'none';
+      ovMsg.textContent = '';
+      ovMsg.setAttribute('aria-hidden', 'true');
     }
 
-    // Kamera-Initialisierung exakt wie in der funktionierenden "Buchen"-Datei
-    let sc = new Html5Qrcode("reader");
-    sc.start(
-      { facingMode: "environment" }, 
-      { fps: 20, qrbox: 250 }, 
-      (txt) => {
-        document.getElementById('artId').value = txt;
-        if(window.navigator.vibrate) window.navigator.vibrate(50);
+    async function save() {
+      const art = artInput.value.trim();
+      const pr = preisInput.value;
+      // Clientseitige Validierung
+      if (!art) { alert("Bitte Artikel scannen."); return; }
+      if (!pr || isNaN(pr) || Number(pr) < 0) { alert("Bitte einen gültigen Preis eingeben (>= 0)."); return; }
+
+      showOverlay("Speichert...");
+
+      // Stoppe Scanner während des Speicherns
+      try { await stopScanner(); } catch(e){ /* ignore */ }
+
+      try {
+        const payload = { daten: { typ: "Preis-Update", artikel: art, preis: pr, menge: 0, platz: "Büro" } };
+        const resp = await fetch(api, {
+          method: "POST",
+          mode: "cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          // Versuche, JSON-Fehlertext zu lesen, falls vorhanden
+          let text = await resp.text().catch(()=>"");
+          throw new Error("Serverfehler: " + (text || resp.status));
+        }
+
+        // Optional: parse response if API liefert JSON
+        // const data = await resp.json();
+
+        alert("Erfolgreich!");
+        preisInput.value = "";
+        artInput.value = "";
+      } catch (err) {
+        console.error("Save error:", err);
+        alert("Fehler beim Speichern. Bitte erneut versuchen.");
+      } finally {
+        hideOverlay();
+        // Scanner wieder starten
+        try { await startScanner(); } catch(e){ console.warn("Scanner konnte nicht neu gestartet werden:", e); }
       }
-    ).catch(err => {
-      console.error("Kamera-Fehler:", err);
+    }
+
+    saveBtn.addEventListener('click', save);
+
+    // Scanner-Handling
+    let html5Scanner = null;
+    let currentCameraId = null;
+
+    async function startScanner() {
+      if (html5Scanner && html5Scanner.getState && html5Scanner.getState() === Html5QrcodeScannerState.SCANNING) return;
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (!devices || devices.length === 0) throw new Error("Keine Kamera gefunden");
+        // Wähle rückseitige Kamera wenn möglich
+        const back = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[0];
+        currentCameraId = back.id || back.deviceId || back;
+        if (!html5Scanner) html5Scanner = new Html5Qrcode("reader");
+        await html5Scanner.start(
+          { deviceId: { exact: currentCameraId } },
+          { fps: 20, qrbox: (viewfinderWidth) => Math.min(viewfinderWidth, 250) },
+          (decodedText) => {
+            artInput.value = decodedText;
+            if (window.navigator.vibrate) window.navigator.vibrate(50);
+          },
+          (error) => {
+            // optional: handle decode errors silently
+          }
+        );
+      } catch (err) {
+        console.error("Kamera-Fehler:", err);
+        // Fallback: zeige Hinweis im Reader-Bereich
+        document.getElementById('reader').innerHTML = "<div style='color:#fff;padding:12px;'>Kamera nicht verfügbar. Bitte manuell EAN eingeben.</div>";
+      }
+    }
+
+    async function stopScanner() {
+      if (html5Scanner && html5Scanner.getState && html5Scanner.getState() !== Html5QrcodeScannerState.NOT_STARTED) {
+        try {
+          await html5Scanner.stop();
+          await html5Scanner.clear();
+        } catch (e) {
+          console.warn("Fehler beim Stoppen des Scanners:", e);
+        }
+      }
+    }
+
+    // Start beim Laden
+    startScanner();
+
+    // Cleanup beim Verlassen der Seite
+    window.addEventListener('beforeunload', () => {
+      try { html5Scanner && html5Scanner.stop(); } catch(e){}
     });
   </script>
 </body>
